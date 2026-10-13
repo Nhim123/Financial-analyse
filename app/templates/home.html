@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinWatch Terminal — Trung tâm tin tức & cảnh báo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:#0f766e; --ink:#0f1b17; --ink2:#1c2a24; --mut:#6b7770; --faint:#93a099;
+    --up:#12a150; --dn:#e5484d; --card-bd:#e6eae4; --line:#eef1ec;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body {
+    background:#f4f6f2;
+    font-family:'IBM Plex Sans',sans-serif; color:var(--ink);
+    min-height:100vh;
+  }
+  .mono { font-family:'IBM Plex Mono',monospace; }
+  /* Full màn hình: khung trải kín cửa sổ, không giới hạn bề rộng. */
+  .frame {
+    width:100%; min-height:100vh; background:#f4f6f2;
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .autoinfo { display:flex; align-items:center; gap:6px; padding:6px 11px; border-radius:9px;
+              background:#e7f6ec; color:#0e7a3c; font:500 11.5px 'IBM Plex Sans'; white-space:nowrap; }
+  .autoinfo .dot { width:6px; height:6px; border-radius:50%; background:var(--up);
+                   animation:pulseDot 1.4s ease-in-out infinite; }
+  .btnicon { background:#f0f3ee; color:#4a5a53; border:1px solid #e0e5dd; border-radius:9px;
+             width:34px; height:32px; font-size:16px; line-height:1; cursor:pointer; }
+  .btnicon:hover { background:#e6eae4; }
+  @keyframes tickerRun { from { transform:translateX(0);} to { transform:translateX(-50%);} }
+  @keyframes pulseDot { 0%,100% {opacity:1; transform:scale(1);} 50% {opacity:.35; transform:scale(.8);} }
+  /* Nháy nền khi giá đổi: xanh = tăng, đỏ = giảm */
+  @keyframes flashUp { 0% { background:rgba(18,161,80,.28); } 100% { background:transparent; } }
+  @keyframes flashDn { 0% { background:rgba(229,72,77,.28); } 100% { background:transparent; } }
+  .flash-up { animation:flashUp 1.4s ease-out; border-radius:5px; }
+  .flash-dn { animation:flashDn 1.4s ease-out; border-radius:5px; }
+  /* Đèn trạng thái phiên trên thẻ chỉ số */
+  .mk { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px;
+        vertical-align:middle; background:#c7cfc9; }
+  .mk.on { background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
+  .autoinfo.off { background:#fdeaef; color:#c0303a; }
+  .autoinfo.off .dot { background:var(--dn); }
+
+  /* Toolbar */
+  .toolbar { height:56px; background:#fff; border-bottom:1px solid var(--card-bd);
+             display:flex; align-items:center; gap:22px; padding:0 26px; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logomark { width:32px; height:32px; border-radius:10px; background:var(--accent);
+              display:flex; align-items:center; justify-content:center;
+              color:#fff; font:700 18px 'IBM Plex Sans'; }
+  .logoname { font:700 16px 'IBM Plex Sans'; color:var(--ink); }
+  .logoname span { color:var(--accent); }
+  .spacer { flex:1; }
+  .search { display:flex; align-items:center; gap:7px; border:1px solid #e0e5dd;
+            border-radius:10px; padding:7px 12px; color:var(--faint); font:400 12px 'IBM Plex Sans'; }
+  .clock { font:500 13px 'IBM Plex Mono'; color:var(--mut); min-width:70px; text-align:right; }
+  .btncollect { background:var(--accent); color:#fff; border:0; border-radius:9px;
+                padding:8px 14px; font:600 12px 'IBM Plex Sans'; cursor:pointer; }
+  .btncollect:disabled { opacity:.6; cursor:wait; }
+
+  /* Ticker */
+  .ticker { height:38px; background:var(--ink); overflow:hidden; position:relative; }
+  .tickertrack { display:flex; width:max-content; height:100%; align-items:center;
+                 animation:tickerRun 38s linear infinite; }
+  .titem { display:flex; align-items:center; gap:8px; padding:0 18px; height:100%;
+           border-right:1px solid #24332c; white-space:nowrap; }
+  .titem .lb { color:#b9c6bf; font:500 11px 'IBM Plex Sans'; }
+  .titem .vl { color:#fff; font:600 12px 'IBM Plex Mono'; }
+  .titem .ch { font:600 11px 'IBM Plex Mono'; }
+
+  /* Header */
+  .pagehead { display:flex; align-items:flex-start; padding:18px 28px 14px; gap:16px; }
+  .pagehead h1 { font:700 22px 'IBM Plex Sans'; color:var(--ink); }
+  .datesub { color:var(--mut); font:400 13px 'IBM Plex Sans'; margin-top:3px; }
+  .chip { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:20px;
+          font:600 11px 'IBM Plex Sans'; white-space:nowrap; }
+  .chip .dot { width:7px; height:7px; border-radius:50%; }
+  .chip.ok { background:#e7f6ec; color:#0e7a3c; }
+  .chip.ok .dot { background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
+  .chip.al { background:#fdeaef; color:#c0303a; }
+  .chip.al .dot { background:var(--dn); animation:pulseDot 1.4s ease-in-out infinite; }
+
+  /* Index cards */
+  .cards6 { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:0 28px; }
+  .icard { background:#fff; border:1px solid var(--card-bd); border-radius:14px; padding:11px 13px; }
+  .icard .r1 { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .icard .nm { font:600 12px 'IBM Plex Sans'; color:var(--ink2); }
+  .icard .ch { font:600 11px 'IBM Plex Mono'; }
+  .icard .vl { font:600 18px 'IBM Plex Mono'; color:var(--ink); margin-top:4px; }
+
+  .up { color:var(--up); } .dn { color:var(--dn); } .fl { color:var(--faint); }
+
+  /* Main grid */
+  .main { flex:1; display:flex; flex-direction:column; gap:14px; padding:14px 28px 28px; }
+  /* Hàng dưới vùng tin: Tăng | Giảm | Cảnh báo | Bản đồ nhiệt */
+  .lowergrid { display:grid; gap:16px; align-items:stretch;
+               grid-template-columns:repeat(3, minmax(0,1fr)) minmax(0,1.3fr); }
+  .card { background:#fff; border:1px solid var(--card-bd); border-radius:18px; }
+  .cardhead { display:flex; align-items:center; gap:10px; }
+  .cardtitle { font:700 16px 'IBM Plex Sans'; color:var(--ink); }
+  .live { display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec; }
+  .live .dot { width:6px; height:6px; border-radius:50%; background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
+  .live b { font:600 10px 'IBM Plex Sans'; color:#0e7a3c; }
+
+  /* Vùng tin theo nhóm */
+  .zonehead { display:flex; align-items:center; gap:10px; }
+  .zones { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; }
+  .zone { background:#fff; border:1px solid var(--card-bd); border-top:4px solid var(--zc);
+          border-radius:16px; padding:14px 16px 10px; display:flex; flex-direction:column; min-width:0; }
+  .zhead { display:flex; align-items:center; gap:8px; }
+  .zicon { width:30px; height:30px; border-radius:9px; background:var(--zbg); display:flex;
+           align-items:center; justify-content:center; font-size:15px; flex:0 0 30px; }
+  .ztitle { font:700 14.5px 'IBM Plex Sans'; color:var(--ink); flex:1; min-width:0; }
+  .zcount { font:700 11px 'IBM Plex Mono'; color:var(--zc); background:var(--zbg);
+            padding:3px 9px; border-radius:10px; white-space:nowrap; }
+  .zstats { font:500 10.5px 'IBM Plex Sans'; color:var(--faint); margin:6px 0 4px 38px; }
+  .zstats .ok { color:#0e7a3c; } .zstats .hi { color:#c0303a; }
+  .zitem { display:block; padding:10px 0 10px 10px; border-bottom:1px solid var(--line);
+           border-left:3px solid transparent; text-decoration:none; margin-left:-10px; }
+  .zitem:last-of-type { border-bottom:0; }
+  .zitem.new { border-left-color:var(--zc); background:linear-gradient(90deg, var(--zbg), transparent 70%); }
+  .zitem:hover .zt { color:var(--zc); }
+  .zrow { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:3px; }
+  .zrow .t { font:500 11px 'IBM Plex Mono'; color:#4a5a53; }
+  .zt { font:600 13px 'IBM Plex Sans'; color:var(--ink2); line-height:1.38; }
+  .zsum { font:400 11.5px 'IBM Plex Sans'; color:var(--mut); line-height:1.45; margin-top:3px;
+          display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .zempty { color:var(--faint); font:400 12px 'IBM Plex Sans'; padding:14px 0; }
+  .newbadge { background:var(--zc, var(--accent)); color:#fff; font:700 8px 'IBM Plex Sans';
+              padding:2px 6px; border-radius:5px; letter-spacing:.05em; }
+  .nsrc { font:500 10px 'IBM Plex Sans'; color:var(--faint); }
+  .nmini { font:600 9.5px 'IBM Plex Sans'; }
+  .nmini.ok { color:#0e7a3c; } .nmini.hi { color:#c0303a; }
+
+  /* Movers */
+  .movcard { padding:14px 16px; }
+  .movtitle { font:700 14px 'IBM Plex Sans'; margin-bottom:10px; }
+  .mrow { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f4f6f2; }
+  .mrow:last-child { border-bottom:0; }
+  .mkey { font:600 13px 'IBM Plex Mono'; color:var(--ink); }
+  .mname { font:400 10px 'IBM Plex Sans'; color:var(--faint); max-width:96px;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mval { font:500 11px 'IBM Plex Mono'; color:var(--ink2); }
+  .mch { font:600 11px 'IBM Plex Mono'; min-width:52px; text-align:right; }
+
+  /* Alerts + heatmap */
+  .alertcard { padding:14px 16px; display:flex; flex-direction:column; }
+  .abadge { background:#fdeaef; color:#c0303a; font:700 11px 'IBM Plex Mono';
+            border-radius:10px; padding:2px 9px; }
+  .arow { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid #f4f6f2; }
+  .arow:last-child { border-bottom:0; }
+  .aicon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center;
+           justify-content:center; font-size:15px; flex:0 0 34px; }
+  .albl { font:700 8.5px 'IBM Plex Sans'; padding:2px 7px; border-radius:5px; letter-spacing:.04em; }
+  .atitle { font:600 13px 'IBM Plex Sans'; color:var(--ink2); margin-top:3px; line-height:1.3; }
+  .adet { font:400 11px 'IBM Plex Sans'; color:var(--mut); margin-top:2px; line-height:1.4; }
+  .heatcard { padding:14px 16px; }
+  .heatgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:10px; }
+  .htile { border-radius:9px; padding:8px 9px; }
+  .htile .hn { font:600 10px 'IBM Plex Sans'; }
+  .htile .hv { font:600 11px 'IBM Plex Mono'; margin-top:2px; }
+
+  /* Tone (Dovish/Hawkish) bottom card */
+  .tonecard { padding:14px 18px; }
+  .tonebar { display:flex; height:22px; border-radius:8px; overflow:hidden;
+             border:1px solid var(--card-bd); margin-top:10px; }
+  .tseg { display:flex; align-items:center; justify-content:center;
+          font:700 10.5px 'IBM Plex Mono'; white-space:nowrap; overflow:hidden; }
+  .tseg.d { background:#2f6fd8; color:#eaf2ff; }
+  .tseg.n { background:#e7ebe4; color:#6b7770; }
+  .tseg.h { background:#d05a48; color:#fff2ee; }
+  .tscale { position:relative; height:7px; border-radius:4px; margin-top:9px;
+            background:linear-gradient(90deg,#2f6fd8 0%,#e7ebe4 50%,#d05a48 100%); }
+  .tneedle { position:absolute; top:-4px; width:2px; height:15px; background:var(--ink);
+             box-shadow:0 0 4px rgba(15,27,23,.5); }
+  .tmeta { display:flex; justify-content:space-between; color:var(--faint);
+           font:400 10px 'IBM Plex Sans'; margin-top:3px; }
+  .tverdict { font:700 12px 'IBM Plex Sans'; padding:4px 12px; border-radius:16px; }
+  .tverdict.hawk { background:#fdeaef; color:#c0303a; }
+  .tverdict.dove { background:#e4edfb; color:#2456a8; }
+  .tverdict.bal { background:#f0f3ee; color:#4a5a53; }
+
+  .srcstrip { padding:10px 28px 18px; color:var(--faint); font:400 11px 'IBM Plex Sans'; }
+  .srcstrip a { color:var(--accent); text-decoration:none; }
+
+  /* Máy tính bảng: vùng tin & hàng dưới thành 2 cột */
+  @media (max-width:1150px) {
+    .zones, .lowergrid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .cards6 { grid-template-columns:repeat(3,1fr); }
+    .toolbar { flex-wrap:wrap; height:auto; padding:10px 16px; row-gap:8px; }
+  }
+  /* Điện thoại: mọi thứ 1 cột, thu gọn lề và thanh công cụ */
+  @media (max-width:700px) {
+    .zones, .lowergrid { grid-template-columns:minmax(0,1fr); gap:12px; }
+    .cards6 { grid-template-columns:repeat(2,1fr); gap:8px; padding:0 12px; }
+    .main { padding:12px 12px 20px; gap:12px; }
+    .pagehead { flex-wrap:wrap; padding:14px 12px 10px; gap:8px; }
+    .pagehead > div:first-child { flex:1 1 100%; }
+    .pagehead h1 { font-size:19px; }
+    .toolbar { gap:10px; padding:8px 12px; }
+    .search, .clock, #fsbtn { display:none; }
+    .icard .vl { font-size:16px; }
+    .srcstrip { padding:10px 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- ===== Toolbar ===== -->
+  <div class="toolbar">
+    <div class="logo">
+      <div class="logomark">Ϝ</div>
+      <div class="logoname">FinWatch <span>Terminal</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="search">⌕ <span>Tìm mã, chỉ số…</span></div>
+    <div class="clock mono" id="clock">--:--:--</div>
+    <div class="autoinfo" id="liveinfo" title="Giá trực tiếp (Binance, CNBC) đẩy liên tục; tin tức &amp; kiểm chứng đa nguồn tự động mỗi {{ interval_min }} phút.">
+      <span class="dot"></span><span id="livetxt">TRỰC TIẾP</span>
+      · giá <b class="mono" id="livets">--:--:--</b>
+      · tin <b class="mono" id="newsts">{{ last_run or '--:--' }}</b>
+    </div>
+    <button class="btnicon" id="fsbtn" onclick="toggleFullscreen()" title="Toàn màn hình (F11)">⛶</button>
+  </div>
+
+  <!-- ===== Ticker ===== -->
+  <div class="ticker">
+    <div class="tickertrack">
+      {% for dup in range(2) %}
+        {% for t in vm.ticker %}
+        <div class="titem" data-key="{{ t.key }}">
+          <span class="lb">{{ t.label }}</span>
+          <span class="vl">{{ t.value }}</span>
+          {% if t.chg is not none %}
+            <span class="ch {{ 'up' if t.chg >= 0 else 'dn' }}">{{ '▲' if t.chg >= 0 else '▼' }} {{ '%+.2f'|format(t.chg) }}%</span>
+          {% else %}<span class="ch fl">—</span>{% endif %}
+        </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ===== Header ===== -->
+  <div class="pagehead">
+    <div style="flex:1">
+      <h1>Trung tâm tin tức &amp; cảnh báo</h1>
+      <div class="datesub" id="dateline">&nbsp;</div>
+    </div>
+    <div class="chip ok"><span class="dot"></span> Dữ liệu đã kiểm chứng</div>
+    <div class="chip al" id="alertchip"><span class="dot"></span> Cảnh báo · {{ vm.alert_count }}</div>
+    {% if telegram.enabled %}
+      <div class="chip" style="background:#e2f4f7;color:#0e7490" title="{{ 'Lỗi gần nhất: ' ~ telegram.last_error if telegram.last_error else 'Gửi cảnh báo mới sau mỗi chu kỳ; bản tin lúc ' ~ (telegram.digest_hours or '—') ~ 'h' }}">
+        ✈ Telegram · BẬT{% if telegram.last_error %} ⚠{% endif %}</div>
+      <button class="btncollect" style="background:#0e7490" id="tgbtn" onclick="sendDigest()">✈ Gửi bản tin</button>
+    {% else %}
+      <div class="chip" style="background:#f0f3ee;color:#6b7770" title="Điền TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID vào file .env rồi khởi động lại">✈ Telegram · TẮT</div>
+    {% endif %}
+  </div>
+
+  <!-- ===== 6 index cards ===== -->
+  <div class="cards6">
+    {% for c in vm.cards %}
+    <div class="icard" data-key="{{ c.key }}">
+      <div class="r1">
+        <span class="nm"><span class="mk {{ 'on' if c.live }}" title="{{ 'Đang giao dịch' if c.live else 'Thị trường đóng cửa — giá phiên gần nhất' }}"></span>{{ c.name }}</span>
+        {% if c.chg is not none %}
+          <span class="ch {{ 'up' if c.chg >= 0 else 'dn' }}">{{ '▲' if c.chg >= 0 else '▼' }}{{ '%+.2f'|format(c.chg) }}%</span>
+        {% else %}<span class="ch fl">—</span>{% endif %}
+      </div>
+      <div class="vl">{{ c.value }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ===== Main ===== -->
+  <div class="main">
+
+    <!-- ===== Tin tức phân vùng theo nhóm ===== -->
+    <div class="zonehead">
+      <span class="cardtitle">Tin tức theo nhóm</span>
+      <span class="live"><span class="dot"></span><b>TỰ ĐỘNG</b></span>
+      <span style="margin-left:auto; font:400 11px 'IBM Plex Sans'; color:var(--faint)">Dịch &amp; tóm tắt tiếng Việt · mới nhất trước</span>
+    </div>
+    <div class="zones">
+      {% for g in vm.groups %}
+      <section class="zone" style="--zc:{{ g.fg }}; --zbg:{{ g.bg }}">
+        <div class="zhead">
+          <span class="zicon">{{ g.icon }}</span>
+          <span class="ztitle">{{ g.title }}</span>
+          <span class="zcount">{{ g.total }} tin</span>
+        </div>
+        <div class="zstats"><span class="ok">✓ {{ g.verified }} đã xác nhận</span> · <span class="hi">● {{ g.high }} ảnh hưởng cao</span></div>
+        {% for n in g['items'] %}
+        <a class="zitem {{ 'new' if n.is_new }}" href="{{ n.link }}" target="_blank" rel="noopener" title="{{ n.link }}">
+          <div class="zrow">
+            <span class="t">{{ n.time }}</span>
+            {% if n.is_new %}<span class="newbadge">MỚI</span>{% endif %}
+            <span class="nsrc">{{ n.source }}</span>
+            {% if n.verified %}<span class="nmini ok">✓ xác nhận</span>{% endif %}
+            {% if n.impact.level == 3 %}<span class="nmini hi">● ảnh hưởng cao</span>{% endif %}
+          </div>
+          <div class="zt">{{ n.title }}</div>
+          {% if n.summary %}<div class="zsum">{{ n.summary }}</div>{% endif %}
+        </a>
+        {% else %}
+        <div class="zempty">Chưa có tin mới trong nhóm này — hệ thống đang thu thập tự động.</div>
+        {% endfor %}
+      </section>
+      {% endfor %}
+    </div>
+
+    <!-- ===== Hàng dưới: Tăng | Giảm | Cảnh báo | Bản đồ nhiệt ===== -->
+    <div class="lowergrid">
+        <div class="card movcard">
+          <div class="movtitle up">▲ Tăng mạnh nhất</div>
+          {% for m in vm.gainers %}
+          <div class="mrow" data-key="{{ m.key }}">
+            <div style="flex:1;min-width:0">
+              <div class="mkey">{{ m.key }}</div>
+              <div class="mname">{{ m.name }}</div>
+            </div>
+            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#12a150" stroke-width="1.4" fill="none"/></svg>{% endif %}
+            <div style="text-align:right">
+              <div class="mval">{{ m.value }}</div>
+              <div class="mch up">{{ '%+.2f'|format(m.chg) }}%</div>
+            </div>
+          </div>
+          {% else %}<div style="color:var(--faint);font-size:11px">Không có mã tăng kỳ này.</div>
+          {% endfor %}
+        </div>
+        <div class="card movcard">
+          <div class="movtitle dn">▼ Giảm mạnh nhất</div>
+          {% for m in vm.losers %}
+          <div class="mrow" data-key="{{ m.key }}">
+            <div style="flex:1;min-width:0">
+              <div class="mkey">{{ m.key }}</div>
+              <div class="mname">{{ m.name }}</div>
+            </div>
+            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#e5484d" stroke-width="1.4" fill="none"/></svg>{% endif %}
+            <div style="text-align:right">
+              <div class="mval">{{ m.value }}</div>
+              <div class="mch dn">{{ '%+.2f'|format(m.chg) }}%</div>
+            </div>
+          </div>
+          {% else %}<div style="color:var(--faint);font-size:11px">Không có mã giảm kỳ này.</div>
+          {% endfor %}
+        </div>
+        <div class="card alertcard">
+          <div class="cardhead">
+            <span style="font-size:15px">⚠</span>
+            <span class="cardtitle" style="font-size:15px">Cảnh báo quan trọng</span>
+            <span class="abadge" style="margin-left:auto">{{ vm.alert_count }}</span>
+          </div>
+          <div style="margin-top:6px">
+            {% for a in vm.alerts %}
+            <div class="arow">
+              <div class="aicon" style="background:{{ '#fdeaef' if a.level=='KHẨN' else ('#fbf0df' if a.level=='CHÚ Ý' else '#eef1ec') }}">{{ a.icon }}</div>
+              <div style="flex:1;min-width:0">
+                <span class="albl" style="background:{{ '#fdeaef' if a.level=='KHẨN' else ('#fbf0df' if a.level=='CHÚ Ý' else '#eef1ec') }};color:{{ '#c0303a' if a.level=='KHẨN' else ('#b45309' if a.level=='CHÚ Ý' else '#4a5a53') }}">{{ a.level }}</span>
+                <div class="atitle">{{ a.title }}</div>
+                <div class="adet">{{ a.detail }}</div>
+              </div>
+            </div>
+            {% else %}<div style="color:var(--faint);font-size:12px;margin-top:8px">Không có cảnh báo — mọi chỉ số đạt kiểm chứng.</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card heatcard">
+          <span class="cardtitle" style="font-size:15px">Bản đồ nhiệt biến động</span>
+          <div class="heatgrid">
+            {% for h in vm.heat %}
+            <div class="htile" data-key="{{ h.key }}" style="background:{{ 'rgba(18,161,80,%s)'|format(h.alpha) if (h.chg or 0) >= 0 else 'rgba(229,72,77,%s)'|format(h.alpha) }}">
+              <div class="hn" style="color:{{ '#0f1b17' if h.dark_text else '#ffffff' }}">{{ h.name }}</div>
+              <div class="hv" style="color:{{ '#0f1b17' if h.dark_text else '#ffffff' }}">{% if h.chg is not none %}{{ '%+.2f'|format(h.chg) }}%{% else %}—{% endif %}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+    </div>
+
+    <!-- ===== Bottom: Dovish/Hawkish (thay lịch sự kiện — dữ liệu thật) ===== -->
+    {% if vm.tone %}
+    <div class="card tonecard">
+      <div class="cardhead">
+        <span style="font-size:15px">🦅</span>
+        <span class="cardtitle" style="font-size:15px">Chỉ số Dovish / Hawkish của dòng tin</span>
+        <span class="tverdict {{ vm.tone.verdict_class }}">{{ vm.tone.verdict_sym }} {{ vm.tone.verdict }}</span>
+        <span style="margin-left:auto; font:400 11px 'IBM Plex Sans'; color:var(--faint)">
+          {{ vm.tone.confidence_label }} · {{ vm.tone.n_signal_items }} tin có tín hiệu
+          {% if vm.tone.net is not none %} · net <b class="mono" style="color:var(--ink)">{{ '%+d'|format(vm.tone.net) }}</b>/±100{% endif %}
+        </span>
+      </div>
+      <div class="tonebar">
+        {% if vm.tone.pct_dovish > 0 %}<div class="tseg d" style="width:{{ vm.tone.pct_dovish }}%">{% if vm.tone.pct_dovish >= 12 %}🕊️ {{ vm.tone.pct_dovish }}%{% endif %}</div>{% endif %}
+        {% if vm.tone.pct_neutral > 0 %}<div class="tseg n" style="width:{{ vm.tone.pct_neutral }}%">{% if vm.tone.pct_neutral >= 14 %}Trung lập {{ vm.tone.pct_neutral }}%{% endif %}</div>{% endif %}
+        {% if vm.tone.pct_hawkish > 0 %}<div class="tseg h" style="width:{{ vm.tone.pct_hawkish }}%">{% if vm.tone.pct_hawkish >= 12 %}🦅 {{ vm.tone.pct_hawkish }}%{% endif %}</div>{% endif %}
+      </div>
+      {% if vm.tone.net is not none %}
+      <div class="tscale"><div class="tneedle" style="left:{{ (vm.tone.net + 100) / 2 }}%"></div></div>
+      <div class="tmeta"><span>← Nới lỏng (−100)</span><span>Cân bằng 0</span><span>Thắt chặt (+100) →</span></div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ===== Sources strip ===== -->
+  <div class="srcstrip">
+    <b style="color:var(--mut)">Nguồn số liệu:</b>
+    {% for sid, s in sources.items() %}<a href="{{ s.homepage }}" target="_blank">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    &nbsp;|&nbsp; <b style="color:var(--mut)">Nguồn tin:</b>
+    {% for sid, s in news_sources.items() %}<a href="{{ s.homepage }}" target="_blank">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    &nbsp;|&nbsp; dữ liệu tham khảo, không phải khuyến nghị đầu tư
+  </div>
+</div>
+
+<script>
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('vi-VN', {hour12:false});
+}
+tick(); setInterval(tick, 1000);
+function setDateline() {
+  document.getElementById('dateline').textContent =
+    new Date().toLocaleDateString('vi-VN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+setDateline();
+async function sendDigest() {
+  const b = document.getElementById('tgbtn');
+  b.disabled = true; b.textContent = '✈ Đang gửi…';
+  try {
+    const r = await (await fetch('/notify/digest', {method:'POST'})).json();
+    alert(r.ok ? 'Đã gửi bản tin lên Telegram.' : 'Gửi thất bại: ' + r.error);
+  } catch(e) { alert('Lỗi: ' + e); }
+  b.disabled = false; b.textContent = '✈ Gửi bản tin';
+}
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  else document.exitFullscreen();
+}
+document.addEventListener('fullscreenchange', () => {
+  const b = document.getElementById('fsbtn');
+  b.textContent = document.fullscreenElement ? '✕' : '⛶';
+  b.title = document.fullscreenElement ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình (F11)';
+});
+// ===== Thời gian thực =====
+// Giá: server đẩy qua /stream (Server-Sent Events) ngay khi có số mới (~15 giây/lần).
+// Tin tức & cảnh báo: khi chu kỳ thu thập 10 phút xong, server đổi `rv` -> thay các vùng đó
+// tại chỗ. Không tải lại cả trang nên giữ nguyên vị trí cuộn và chế độ toàn màn hình.
+let es = null, lastSnap = null, lastRv = null, lastMsgAt = Date.now();
+
+function fmtPrice(v) {
+  if (v == null) return '—';
+  const a = Math.abs(v), d = a >= 1000 ? 0 : (a >= 10 ? 2 : 4);
+  return v.toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+}
+function flash(el, dir) {
+  if (!el || !dir) return;
+  el.classList.remove('flash-up', 'flash-dn');
+  void el.offsetWidth;  // buộc trình duyệt chạy lại hiệu ứng
+  el.classList.add(dir > 0 ? 'flash-up' : 'flash-dn');
+}
+function signClass(el, chg) {
+  el.classList.remove('up', 'dn', 'fl');
+  el.classList.add(chg == null ? 'fl' : (chg >= 0 ? 'up' : 'dn'));
+}
+function applyQuotes(snap, animate) {
+  for (const [key, q] of Object.entries(snap.quotes || {})) {
+    const dir = animate ? q.dir : 0;
+    const pct = q.chg == null ? null : (q.chg >= 0 ? '+' : '') + q.chg.toFixed(2) + '%';
+    const arrow = q.chg == null ? '' : (q.chg >= 0 ? '▲' : '▼');
+    document.querySelectorAll(`[data-key="${key}"]`).forEach(el => {
+      if (el.classList.contains('titem')) {
+        const v = el.querySelector('.vl'), c = el.querySelector('.ch');
+        v.textContent = fmtPrice(q.price); flash(v, dir);
+        c.textContent = pct ? `${arrow} ${pct}` : '—'; signClass(c, q.chg);
+      } else if (el.classList.contains('icard')) {
+        const v = el.querySelector('.vl'), c = el.querySelector('.ch'), mk = el.querySelector('.mk');
+        v.textContent = fmtPrice(q.price); flash(v, dir);
+        c.textContent = pct ? `${arrow}${pct}` : '—'; signClass(c, q.chg);
+        if (mk) {
+          mk.classList.toggle('on', !!q.live);
+          mk.title = q.live ? `Đang giao dịch · ${q.src}` : `Thị trường đóng cửa — giá phiên gần nhất · ${q.src}`;
+        }
+      } else if (el.classList.contains('mrow')) {
+        const v = el.querySelector('.mval'), c = el.querySelector('.mch');
+        v.textContent = fmtPrice(q.price); flash(v, dir);
+        c.textContent = pct || '—'; signClass(c, q.chg);
+      } else if (el.classList.contains('htile')) {
+        const a = q.chg == null ? 0 : Math.min(Math.abs(q.chg) / 2.5, 1) * 0.9;
+        el.style.background = (q.chg || 0) >= 0 ? `rgba(18,161,80,${a.toFixed(3)})` : `rgba(229,72,77,${a.toFixed(3)})`;
+        const col = a <= 0.5 ? '#0f1b17' : '#ffffff';
+        el.querySelector('.hn').style.color = col;
+        const hv = el.querySelector('.hv');
+        hv.style.color = col; hv.textContent = pct || '—';
+      }
+    });
+  }
+}
+function setLive(ok, ts) {
+  document.getElementById('liveinfo').classList.toggle('off', !ok);
+  document.getElementById('livetxt').textContent = ok ? 'TRỰC TIẾP' : 'MẤT KẾT NỐI · đang thử lại';
+  if (ts) document.getElementById('livets').textContent =
+    new Date(ts).toLocaleTimeString('vi-VN', {hour12: false});
+}
+async function refreshSections() {
+  try {
+    const html = await (await fetch('/', {cache: 'no-store'})).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    for (const sel of ['.zones', '.lowergrid', '.tonecard', '#alertchip', '#newsts']) {
+      const cur = document.querySelector(sel), fresh = doc.querySelector(sel);
+      if (cur && fresh) cur.replaceWith(fresh);
+    }
+    if (lastSnap) applyQuotes(lastSnap, false);
+  } catch (e) { /* mất mạng tạm thời: lần báo sau sẽ thử lại */ }
+}
+function connect() {
+  if (es) es.close();
+  es = new EventSource('/stream');
+  es.onmessage = (ev) => {
+    lastMsgAt = Date.now();
+    const snap = JSON.parse(ev.data);
+    applyQuotes(snap, lastSnap !== null);
+    setLive(true, snap.ts);
+    if (lastRv !== null && snap.rv !== lastRv) refreshSections();
+    lastRv = snap.rv; lastSnap = snap;
+  };
+  es.onerror = () => setLive(false);  // EventSource tự kết nối lại
+}
+connect();
+// Kết nối "treo" mà không báo lỗi (vd điện thoại đổi mạng): quá 90 giây không có dữ liệu thì nối lại.
+setInterval(() => { if (Date.now() - lastMsgAt > 90000) { setLive(false); lastMsgAt = Date.now(); connect(); } }, 15000);
+</script>
+</body>
+</html>

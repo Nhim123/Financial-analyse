@@ -1,0 +1,15 @@
+# Bí mật & cấu hình riêng của từng máy (token Telegram, địa chỉ dashboard)
+.env
+
+# Dữ liệu & log sinh ra khi chạy
+data/
+*.db
+*.log
+
+# Môi trường Python
+.venv/
+__pycache__/
+*.pyc
+
+# Cấu hình công cụ riêng của máy (đường dẫn cục bộ)
+.claude/

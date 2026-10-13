@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    container_name: fin-watch
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/code/data
+    # Token Telegram & tuỳ chọn thông báo (xem .env.example). Không có file .env vẫn chạy được.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Chu kỳ tự động thu thập (giây). Mặc định 600s = 10 phút.
+      COLLECT_INTERVAL_SECONDS: "600"
+      # Đường dẫn database trong container
+      DB_PATH: "/code/data/finwatch.db"
+      TZ: "Asia/Ho_Chi_Minh"
+    restart: unless-stopped
