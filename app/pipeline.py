@@ -9,6 +9,7 @@ from .collectors import (collect_binance, collect_coingecko, collect_erapi,
                          collect_frankfurter, collect_cnbc, collect_yahoo)
 from .collectors.news import collect_news
 from .collectors.http import get_client, now_iso
+from .config import NEWS_SOURCES
 from .enrich import translate_vi
 from .models import Reading
 from .verify import verify_all
@@ -97,6 +98,8 @@ def _translate_displayed(news_items) -> None:
     display = {}
     for block in built.values():
         for it in block["items"]:
+            if NEWS_SOURCES.get(it["source"], {}).get("lang") == "vi":
+                continue  # tin tiếng Việt: hiển thị nguyên văn, không cần dịch
             display.setdefault(it["link"], it)
 
     have = storage.get_translations(list(display.keys()))

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import List, Optional
 
-from ..config import NEWS_FEEDS, NEWS_KEYWORDS
+from ..config import (NEWS_FEEDS, NEWS_KEYWORDS, NEWS_SOURCES, NEWS_VN_EXCLUDE_LINK,
+                      NEWS_VN_EXCLUDE_TITLE)
 from ..models import NewsItem
 from .http import get_client, now_iso
 
@@ -70,6 +71,13 @@ def _classify(title: str, summary: str, default: List[str]) -> List[str]:
     return list(found)
 
 
+def _is_analysis(title: str, link: str) -> bool:
+    """Bài phân tích / nhận định thị trường (tin tiếng Việt) -> không thu nhận."""
+    t, l = title.lower(), link.lower()
+    return (any(k in t for k in NEWS_VN_EXCLUDE_TITLE)
+            or any(k in l for k in NEWS_VN_EXCLUDE_LINK))
+
+
 def _clean(html: Optional[str]) -> str:
     if not html:
         return ""
@@ -99,7 +107,13 @@ def collect_news() -> List[NewsItem]:
                 published = _parse_date(
                     _text(it, "pubDate") or _text(it, "published") or _text(it, "updated")
                 )
-                classes = _classify(title, summary, feed.get("default", []))
+                if NEWS_SOURCES.get(feed["source"], {}).get("lang") == "vi":
+                    # Tin Việt: từ khoá tiếng Anh không áp dụng (vd "VN-Index" khớp "index").
+                    if _is_analysis(title, link):
+                        continue
+                    classes = list(feed.get("default", []))
+                else:
+                    classes = _classify(title, summary, feed.get("default", []))
                 if not classes:
                     continue  # tin tổng hợp không khớp lĩnh vực nào -> bỏ
                 out.append(NewsItem(

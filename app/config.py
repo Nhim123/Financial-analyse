@@ -156,6 +156,18 @@ NEWS_SOURCES = {
     "investingnews": {"label": "Investing News",  "homepage": "https://investingnews.com",    "trust": 3},
     "cointelegraph": {"label": "Cointelegraph",   "homepage": "https://cointelegraph.com",    "trust": 3},
     "seekingalpha":  {"label": "Seeking Alpha",   "homepage": "https://seekingalpha.com",     "trust": 3},
+    # Hãng tin Việt Nam — lang "vi": không dịch, không phân loại theo từ khoá tiếng Anh.
+    "cafef":         {"label": "CafeF",           "homepage": "https://cafef.vn",             "trust": 2, "lang": "vi"},
+    "vietstock":     {"label": "Vietstock",       "homepage": "https://vietstock.vn",         "trust": 2, "lang": "vi"},
+    "vneconomy":     {"label": "VnEconomy",       "homepage": "https://vneconomy.vn",         "trust": 2, "lang": "vi"},
+}
+
+# Nhóm tin hiển thị (khác nhóm số liệu ASSET_LABELS: tin tỷ giá đã thay bằng tin Việt Nam).
+NEWS_CLASS_LABELS = {
+    "stock": "Chứng khoán thế giới",
+    "commodity": "Hàng hoá (Vàng / Dầu)",
+    "crypto": "Tiền mã hoá (Crypto)",
+    "vn": "Chứng khoán & Doanh nghiệp Việt Nam",
 }
 
 # Feed RSS đã kiểm tra chạy được. "default" = nhóm gán mặc định cho feed chuyên đề;
@@ -169,6 +181,24 @@ NEWS_FEEDS = [
     {"source": "marketwatch",   "url": "http://feeds.marketwatch.com/marketwatch/marketpulse/", "default": []},
     {"source": "ft",            "url": "https://www.ft.com/markets?format=rss",           "default": []},
     {"source": "seekingalpha",  "url": "https://seekingalpha.com/market_currents.xml",    "default": []},
+    {"source": "cafef",         "url": "https://cafef.vn/thi-truong-chung-khoan.rss",     "default": ["vn"]},
+    {"source": "cafef",         "url": "https://cafef.vn/doanh-nghiep.rss",               "default": ["vn"]},
+    {"source": "vietstock",     "url": "https://vietstock.vn/830/chung-khoan/co-phieu.rss", "default": ["vn"]},
+    {"source": "vietstock",     "url": "https://vietstock.vn/737/doanh-nghiep/hoat-dong-kinh-doanh.rss", "default": ["vn"]},
+    {"source": "vneconomy",     "url": "https://vneconomy.vn/chung-khoan.rss",            "default": ["vn"]},
+]
+
+# Tin Việt Nam: loại bài PHÂN TÍCH / NHẬN ĐỊNH thị trường, chỉ giữ tin sự kiện.
+# So khớp trên tiêu đề (chữ thường) và đường dẫn bài (slug không dấu).
+NEWS_VN_EXCLUDE_TITLE = [
+    "phân tích", "nhận định", "khuyến nghị", "góc nhìn", "dự báo", "chuyên gia",
+    "blog chứng khoán", "vietstock daily", "kịch bản", "chiến lược đầu tư", "xu hướng",
+    "theo dấu dòng tiền", "thấy gì", "có nên", "cổ phiếu cần quan tâm", "cơ hội đầu tư",
+    "định giá", "bình luận", "tuần tới", "phiên tới", "điểm nhấn",
+]
+NEWS_VN_EXCLUDE_LINK = [
+    "phan-tich", "nhan-dinh", "khuyen-nghi", "goc-nhin", "du-bao", "chuyen-gia",
+    "blog-chung-khoan", "vietstock-daily", "kich-ban", "chien-luoc-dau-tu", "xu-huong",
 ]
 
 # Từ khoá phân loại tin vào từng lĩnh vực. Khớp NGUYÊN TỪ (word boundary) để tránh
@@ -180,9 +210,6 @@ NEWS_KEYWORDS = {
     "commodity": ["gold", "silver", "xau", "bullion", "oil", "crude", "brent", "wti",
                   "opec", "commodity", "commodities", "metal", "metals", "energy",
                   "gas", "gasoline"],
-    "fx": ["forex", "currency", "currencies", "greenback", "euro", "euros", "yen",
-           "sterling", "yuan", "renminbi", "dxy", "fx", "usd", "eur", "jpy", "gbp",
-           "exchange rate", "us dollar", "the dollar"],
     "stock": ["stock", "stocks", "shares", "s&p", "nasdaq", "dow", "wall street",
               "equities", "equity", "ipo", "earnings", "ftse", "nikkei", "dax",
               "index", "indices", "stock market"],

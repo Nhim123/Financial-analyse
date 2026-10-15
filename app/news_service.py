@@ -9,7 +9,7 @@ import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from .config import (ASSET_LABELS, NEWS_MAX_PER_CLASS, NEWS_SIM_THRESHOLD,
+from .config import (NEWS_CLASS_LABELS, NEWS_MAX_PER_CLASS, NEWS_SIM_THRESHOLD,
                      NEWS_SOURCES, NEWS_STALE_HOURS)
 from .enrich import assess_impact
 from .market_tone import aggregate as tone_aggregate, assess_tone
@@ -20,8 +20,9 @@ _STOP = {"the", "a", "an", "to", "of", "in", "on", "for", "and", "or", "is", "ar
 
 
 def _tokens(title: str) -> set:
-    words = re.findall(r"[a-z0-9]+", title.lower())
-    return {w for w in words if len(w) > 2 and w not in _STOP}
+    # \w (Unicode) giữ chữ có dấu tiếng Việt; âm tiết Việt thường chỉ 2 ký tự nên giữ len > 1.
+    words = re.findall(r"\w+", title.lower())
+    return {w for w in words if len(w) > 1 and w not in _STOP}
 
 
 def _similar(a: set, b: set) -> float:
@@ -114,19 +115,18 @@ def build(items: List[dict], translations: Optional[dict] = None) -> Dict[str, d
     translations: {link: {'vi_title','vi_summary'}} — bản dịch đã cache (tuỳ chọn).
     """
     translations = translations or {}
-    by_class: Dict[str, List[dict]] = {k: [] for k in ASSET_LABELS}
+    by_class: Dict[str, List[dict]] = {k: [] for k in NEWS_CLASS_LABELS}
     for it in items:
         for cls in it["classes"]:
             if cls in by_class:
                 by_class[cls].append(it)
 
-    order = ["stock", "commodity", "crypto", "fx"]
     out = {}
-    for cls in order:
+    for cls in NEWS_CLASS_LABELS:
         grouped = _group_class(by_class.get(cls, []), translations)
         if grouped:
             out[cls] = {
-                "label": ASSET_LABELS[cls],
+                "label": NEWS_CLASS_LABELS[cls],
                 "items": grouped,
                 "total": len(grouped),
                 "verified": sum(1 for g in grouped if g["verified"]),

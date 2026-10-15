@@ -19,7 +19,7 @@ TAG_MAP = {
     "stock":     ("Chứng khoán", "#0f766e", "#e6f2f0"),
     "commodity": ("Hàng hoá",    "#be123c", "#fdeaef"),
     "crypto":    ("Crypto",      "#b45309", "#fbf0df"),
-    "fx":        ("FX",          "#0e7490", "#e2f4f7"),
+    "vn":        ("CK Việt Nam", "#b91c1c", "#fde8e8"),
 }
 
 _SHORT_NAMES = {
@@ -32,12 +32,12 @@ _SHORT_NAMES = {
 
 
 # Vùng tin trên màn hình chính: thứ tự, biểu tượng, tiêu đề; số tin hiển thị mỗi vùng.
-ZONE_ORDER = ["stock", "commodity", "crypto", "fx"]
+ZONE_ORDER = ["stock", "commodity", "crypto", "vn"]
 ZONE_META = {
     "stock":     ("📈", "Chứng khoán thế giới"),
     "commodity": ("🛢️", "Vàng & Dầu"),
     "crypto":    ("🪙", "Tiền mã hoá"),
-    "fx":        ("💱", "Tỷ giá (FX)"),
+    "vn":        ("🇻🇳", "Chứng khoán & Doanh nghiệp Việt Nam"),
 }
 ZONE_ITEMS = 5
 
