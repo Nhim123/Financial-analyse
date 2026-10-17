@@ -7,7 +7,8 @@ Dữ liệu chỉ giữ trong bộ nhớ — giao diện nhận qua luồng /str
 import json
 import re
 import threading
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Tuple
 
 from .collectors.http import get_client, now_iso
@@ -95,19 +96,76 @@ def _fetch_cnbc(client) -> Dict[str, dict]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Chứng khoán Việt Nam: rổ VN30 / HNX30 và chỉ số tương ứng (SSI iBoard, không cần key).
+# Giá cổ phiếu tính bằng VND. Thành phần rổ lấy trực tiếp từ SSI nên tự cập nhật khi đổi rổ.
+# ---------------------------------------------------------------------------
+VN_GROUPS = ("VN30", "HNX30")
+_SSI = "https://iboard-query.ssi.com.vn"
+_SSI_HEADERS = {"Origin": "https://iboard.ssi.com.vn", "Referer": "https://iboard.ssi.com.vn/"}
+_VN_TZ = timezone(timedelta(hours=7))
+_VN_IDLE_REFRESH_S = 600  # ngoài giờ giao dịch chỉ lấy lại mỗi 10 phút
+_vn_last_fetch = 0.0
+
+
+def vn_session_open(now: Optional[datetime] = None) -> bool:
+    """Trong giờ giao dịch HOSE/HNX: thứ 2–6, 9:00–15:00 giờ Việt Nam."""
+    t = (now or datetime.now(timezone.utc)).astimezone(_VN_TZ)
+    return t.weekday() < 5 and 9 * 60 <= t.hour * 60 + t.minute <= 15 * 60
+
+
+def _num(x) -> Optional[float]:
+    try:
+        return float(x) if x is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _fetch_ssi_vn(client) -> Dict[str, dict]:
+    session = vn_session_open()
+    out = {}
+    for g in VN_GROUPS:
+        r = client.get(f"{_SSI}/stock/group/{g}", headers=_SSI_HEADERS)
+        r.raise_for_status()
+        for s in r.json().get("data", []):
+            sym = s.get("stockSymbol")
+            price = _num(s.get("matchedPrice")) or _num(s.get("refPrice"))  # chưa khớp lệnh -> giá tham chiếu
+            if not sym or not price:
+                continue
+            out[f"VN:{sym}"] = {"price": price, "chg": _num(s.get("priceChangePercent")),
+                                "src": "SSI", "qt": None, "live": session, "group": g,
+                                "name": s.get("companyNameVi") or sym}
+        r = client.get(f"{_SSI}/exchange-index/{g}", headers=_SSI_HEADERS)
+        r.raise_for_status()
+        d = r.json().get("data") or {}
+        if d.get("indexValue"):
+            qt = (datetime.fromtimestamp(d["time"] / 1000, tz=timezone.utc).isoformat(timespec="seconds")
+                  if d.get("time") else None)
+            out[g] = {"price": float(d["indexValue"]), "chg": _num(d.get("changePercent")),
+                      "src": "SSI", "qt": qt, "live": session, "group": "index"}
+    return out
+
+
 def refresh() -> None:
     """Một vòng lấy giá. Nguồn nào lỗi thì giữ giá cũ của nguồn đó, không làm trống giao diện."""
-    global _version, _last_ok, _last_error
+    global _version, _last_ok, _last_error, _vn_last_fetch
     fresh: Dict[str, dict] = {}
     errors = []
+    fetchers = [_fetch_binance, _fetch_cnbc]
+    if vn_session_open() or time.time() - _vn_last_fetch >= _VN_IDLE_REFRESH_S:
+        fetchers.append(_fetch_ssi_vn)
     with get_client() as client:
-        for fn in (_fetch_binance, _fetch_cnbc):
+        for fn in fetchers:
             try:
                 fresh.update(fn(client))
+                if fn is _fetch_ssi_vn:
+                    _vn_last_fetch = time.time()
             except Exception as e:  # noqa: BLE001
                 errors.append(f"{fn.__name__[7:]}: {type(e).__name__}")
     now = datetime.now(timezone.utc)
     for q in fresh.values():
+        if "live" in q:  # chứng khoán VN: trạng thái phiên tính theo giờ giao dịch
+            continue
         qt = datetime.fromisoformat(q["qt"]) if q["qt"] else None
         age_s = (now - qt).total_seconds() if qt else None
         # CNBC đôi khi trả giờ khớp lệnh ở TƯƠNG LAI cho hợp đồng tương lai khi sàn đã nghỉ

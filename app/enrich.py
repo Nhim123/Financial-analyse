@@ -79,6 +79,24 @@ _NEG = ["crash", "collapse", "plunge", "plummet", "tumble", "fall", "falls", "dr
         "sanction", "sanctions", "war", "ban", "crisis", "lower", "sink", "freefall",
         "meltdown", "layoff", "layoffs", "rout"]
 
+# Từ khoá tiếng Việt cho tin CafeF / Vietstock / VnEconomy (tin Việt không dịch nên
+# bộ từ khoá tiếng Anh ở trên không khớp được).
+_HIGH += ["giảm sàn", "tăng trần", "lao dốc", "bán tháo", "sụp đổ", "phá sản", "vỡ nợ",
+          "khởi tố", "bị bắt", "bắt tạm giam", "truy tố", "thao túng", "đình chỉ",
+          "huỷ niêm yết", "hủy niêm yết", "cưỡng chế", "giải chấp", "call margin",
+          "khủng hoảng", "kỷ lục", "tăng vọt", "giảm mạnh", "tăng mạnh", "bứt phá",
+          "thua lỗ nặng", "lỗ nặng"]
+_MED += ["lợi nhuận", "doanh thu", "cổ tức", "phát hành", "thoái vốn", "thâu tóm",
+         "sáp nhập", "niêm yết", "khối ngoại", "mua ròng", "bán ròng", "lãi suất",
+         "tỷ giá", "trái phiếu", "nâng hạng", "xử phạt", "vi phạm", "cảnh báo",
+         "kiểm soát", "lãi", "lỗ", "tăng", "giảm"]
+_POS += ["tăng trần", "tăng vọt", "tăng mạnh", "bứt phá", "kỷ lục", "lãi", "lợi nhuận tăng",
+         "mua ròng", "nâng hạng", "hồi phục", "tăng", "cổ tức"]
+_NEG += ["giảm sàn", "lao dốc", "bán tháo", "sụp đổ", "phá sản", "vỡ nợ", "khởi tố", "bị bắt",
+         "bắt tạm giam", "truy tố", "thao túng", "đình chỉ", "huỷ niêm yết", "hủy niêm yết",
+         "cưỡng chế", "giải chấp", "khủng hoảng", "giảm mạnh", "lỗ", "thua lỗ", "bán ròng",
+         "xử phạt", "vi phạm", "cảnh báo", "giảm"]
+
 _LEVELS = {3: ("Cao", "🔴"), 2: ("Trung bình", "🟠"), 1: ("Thấp", "⚪")}
 
 

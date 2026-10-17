@@ -138,6 +138,57 @@
   /* Movers */
   .movcard { padding:14px 16px; }
   .movtitle { font:700 14px 'IBM Plex Sans'; margin-bottom:10px; }
+  .movhead { display:flex; align-items:center; justify-content:space-between; gap:6px;
+             flex-wrap:wrap; margin-bottom:8px; }
+  .movhead .movtitle { margin-bottom:0; }
+  .mtabs { display:flex; gap:4px; }
+  .mtab { border:1px solid var(--card-bd); background:#f0f3ee; color:#4a5a53; cursor:pointer;
+          font:600 10.5px 'IBM Plex Sans'; padding:3px 8px; border-radius:7px; }
+  .mtab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .mgroup { display:none; }
+  .mgroup.on { display:block; }
+  .mempty { color:var(--faint); font-size:11px; padding:6px 0; }
+  /* Nút "Xem thêm" & pop-up bảng xếp hạng */
+  .movcard { display:flex; flex-direction:column; }
+  .movcard .mgroup.on { padding-bottom:12px; }
+  .mmore { margin-top:auto; width:100%; display:flex; align-items:center; justify-content:center;
+           gap:8px; padding:9px 12px; border-radius:11px; border:1px solid transparent; cursor:pointer;
+           font:600 12px 'IBM Plex Sans';
+           transition:background .18s, color .18s, box-shadow .18s, transform .18s; }
+  .mmore.up { background:#e7f6ec; color:#0e7a3c; border-color:#cdebd8; }
+  .mmore.dn { background:#fdeaef; color:#c0303a; border-color:#f6d1d9; }
+  .mmore:hover { transform:translateY(-1px); box-shadow:0 8px 18px -10px rgba(15,27,23,.45); }
+  .mmore.up:hover { background:var(--up); border-color:var(--up); color:#fff; }
+  .mmore.dn:hover { background:var(--dn); border-color:var(--dn); color:#fff; }
+  .mmore svg { transition:transform .18s; }
+  .mmore:hover svg { transform:translateX(3px); }
+  .mmore:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  /* Pop-up: nền phía sau làm mờ (blur) + tối nhẹ; -webkit- cho Safari trên iPhone */
+  .modal { position:fixed; inset:0; z-index:50; display:flex; align-items:center;
+           justify-content:center; padding:16px; background:rgba(15,27,23,.28);
+           -webkit-backdrop-filter:blur(8px) saturate(120%); backdrop-filter:blur(8px) saturate(120%);
+           animation:fadeIn .18s ease-out; }
+  .modal[hidden] { display:none; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes popIn { from { opacity:0; transform:translateY(10px) scale(.97); } to { opacity:1; transform:none; } }
+  @keyframes slideUp { from { transform:translateY(100%); } to { transform:none; } }
+  .mpanel { background:#fff; border:1px solid var(--card-bd); border-radius:16px; width:min(580px, 100%);
+            max-height:86vh; display:flex; flex-direction:column;
+            box-shadow:0 30px 70px -20px rgba(15,27,23,.5); animation:popIn .22s cubic-bezier(.2,.8,.2,1); }
+  @media (prefers-reduced-motion: reduce) { .modal, .mpanel { animation:none; } .mmore, .mmore svg { transition:none; } }
+  .mphead { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 16px 8px; }
+  .mphead b { font:700 15px 'IBM Plex Sans'; flex:1; min-width:170px; }
+  .mclose { border:0; background:#f0f3ee; border-radius:8px; width:30px; height:30px;
+            cursor:pointer; font-size:14px; color:#4a5a53; }
+  .mpsub { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 16px 8px;
+           color:var(--faint); font:400 11px 'IBM Plex Sans'; }
+  .msort { border:1px solid var(--card-bd); background:#fff; border-radius:7px; cursor:pointer;
+           padding:3px 9px; font:600 11px 'IBM Plex Sans'; color:#4a5a53; }
+  .mpbody { overflow-y:auto; padding:0 16px 14px; }
+  .mrank { flex:0 0 24px; color:var(--faint); font:500 11px 'IBM Plex Mono'; }
+  .mlist .mname { max-width:300px; }
+  @media (max-width:700px) { .modal { padding:0; align-items:flex-end; }
+    .mpanel { border-radius:16px 16px 0 0; max-height:92vh; animation:slideUp .26s cubic-bezier(.2,.8,.2,1); } }
   .mrow { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f4f6f2; }
   .mrow:last-child { border-bottom:0; }
   .mkey { font:600 13px 'IBM Plex Mono'; color:var(--ink); }
@@ -315,40 +366,37 @@
 
     <!-- ===== Hàng dưới: Tăng | Giảm | Cảnh báo | Bản đồ nhiệt ===== -->
     <div class="lowergrid">
+        {% for side in [('gainers', 'up', '▲ Tăng mạnh nhất', '#12a150', 'tăng'),
+                        ('losers', 'dn', '▼ Giảm mạnh nhất', '#e5484d', 'giảm')] %}
         <div class="card movcard">
-          <div class="movtitle up">▲ Tăng mạnh nhất</div>
-          {% for m in vm.gainers %}
-          <div class="mrow" data-key="{{ m.key }}">
-            <div style="flex:1;min-width:0">
-              <div class="mkey">{{ m.key }}</div>
-              <div class="mname">{{ m.name }}</div>
-            </div>
-            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#12a150" stroke-width="1.4" fill="none"/></svg>{% endif %}
-            <div style="text-align:right">
-              <div class="mval">{{ m.value }}</div>
-              <div class="mch up">{{ '%+.2f'|format(m.chg) }}%</div>
-            </div>
+          <div class="movhead">
+            <div class="movtitle {{ side[1] }}">{{ side[2] }}</div>
+            <div class="mtabs">{% for mg in vm.mover_groups %}<button class="mtab" data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}</div>
           </div>
-          {% else %}<div style="color:var(--faint);font-size:11px">Không có mã tăng kỳ này.</div>
-          {% endfor %}
-        </div>
-        <div class="card movcard">
-          <div class="movtitle dn">▼ Giảm mạnh nhất</div>
-          {% for m in vm.losers %}
-          <div class="mrow" data-key="{{ m.key }}">
-            <div style="flex:1;min-width:0">
-              <div class="mkey">{{ m.key }}</div>
-              <div class="mname">{{ m.name }}</div>
+          {% for mg in vm.mover_groups %}
+          <div class="mgroup" data-group="{{ mg.id }}">
+            {% for m in mg[side[0]] %}
+            <div class="mrow" data-key="{{ m.key }}"{% if m.vn %} data-vn="1"{% endif %}>
+              <div style="flex:1;min-width:0">
+                <div class="mkey">{{ m.sym }}</div>
+                <div class="mname" title="{{ m.name }}">{{ m.name }}</div>
+              </div>
+              {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="{{ side[3] }}" stroke-width="1.4" fill="none"/></svg>{% endif %}
+              <div style="text-align:right">
+                <div class="mval">{{ m.value }}</div>
+                <div class="mch {{ side[1] }}">{{ '%+.2f'|format(m.chg) }}%</div>
+              </div>
             </div>
-            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#e5484d" stroke-width="1.4" fill="none"/></svg>{% endif %}
-            <div style="text-align:right">
-              <div class="mval">{{ m.value }}</div>
-              <div class="mch dn">{{ '%+.2f'|format(m.chg) }}%</div>
-            </div>
+            {% else %}<div class="mempty">Không có mã {{ side[4] }} trong nhóm này.</div>
+            {% endfor %}
           </div>
-          {% else %}<div style="color:var(--faint);font-size:11px">Không có mã giảm kỳ này.</div>
           {% endfor %}
+          <button class="mmore {{ side[1] }}" onclick="openMovers('{{ 'desc' if side[0] == 'gainers' else 'asc' }}')">
+            <span>Xem bảng xếp hạng đầy đủ</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
         </div>
+        {% endfor %}
         <div class="card alertcard">
           <div class="cardhead">
             <span style="font-size:15px">⚠</span>
@@ -405,6 +453,42 @@
       {% endif %}
     </div>
     {% endif %}
+  </div>
+
+  <!-- ===== Pop-up "Xem thêm": bảng xếp hạng đầy đủ của nhóm đang chọn ===== -->
+  <div id="mmodal" class="modal" hidden onclick="if (event.target === this) closeMovers()">
+    <div class="mpanel" role="dialog" aria-modal="true" aria-labelledby="mmtitle">
+      <div class="mphead">
+        <b id="mmtitle">Bảng xếp hạng</b>
+        <div class="mtabs">{% for mg in vm.mover_groups %}<button class="mtab" data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}</div>
+        <button class="mclose" onclick="closeMovers()" aria-label="Đóng">✕</button>
+      </div>
+      <div class="mpsub">
+        <button class="msort" id="msortbtn" onclick="toggleSort()">↓ Tăng mạnh trước</button>
+        <span id="mmcount"></span><span>· % thay đổi trong phiên, cập nhật trực tiếp</span>
+      </div>
+      <div id="mlists" class="mpbody">
+        {% for mg in vm.mover_groups %}
+        <div class="mlist" data-group="{{ mg.id }}" data-label="{{ mg.label }}">
+          {% for m in mg['all'] %}
+          <div class="mrow" data-key="{{ m.key }}"{% if m.vn %} data-vn="1"{% endif %}>
+            <span class="mrank"></span>
+            <div style="flex:1;min-width:0">
+              <div class="mkey">{{ m.sym }}</div>
+              <div class="mname" title="{{ m.name }}">{{ m.name }}</div>
+            </div>
+            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#93a099" stroke-width="1.4" fill="none"/></svg>{% endif %}
+            <div style="text-align:right">
+              <div class="mval">{{ m.value }}</div>
+              <div class="mch {{ 'fl' if m.chg is none else ('up' if m.chg >= 0 else 'dn') }}">{% if m.chg is not none %}{{ '%+.2f'|format(m.chg) }}%{% else %}—{% endif %}</div>
+            </div>
+          </div>
+          {% else %}<div class="mempty">Chưa có dữ liệu cho nhóm này.</div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
   <!-- ===== Sources strip ===== -->
@@ -487,7 +571,11 @@ function applyQuotes(snap, animate) {
         }
       } else if (el.classList.contains('mrow')) {
         const v = el.querySelector('.mval'), c = el.querySelector('.mch');
-        v.textContent = fmtPrice(q.price); flash(v, dir);
+        // Cổ phiếu Việt Nam hiển thị theo nghìn đồng như bảng điện (vd 20,600 -> 20.60)
+        v.textContent = el.dataset.vn
+          ? (q.price / 1000).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})
+          : fmtPrice(q.price);
+        flash(v, dir);
         c.textContent = pct || '—'; signClass(c, q.chg);
       } else if (el.classList.contains('htile')) {
         const a = q.chg == null ? 0 : Math.min(Math.abs(q.chg) / 2.5, 1) * 0.9;
@@ -510,13 +598,64 @@ async function refreshSections() {
   try {
     const html = await (await fetch('/', {cache: 'no-store'})).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    for (const sel of ['.zones', '.lowergrid', '.tonecard', '#alertchip', '#newsts']) {
+    for (const sel of ['.zones', '.lowergrid', '.tonecard', '#alertchip', '#newsts', '#mlists']) {
       const cur = document.querySelector(sel), fresh = doc.querySelector(sel);
       if (cur && fresh) cur.replaceWith(fresh);
     }
+    initMoverGroup();
     if (lastSnap) applyQuotes(lastSnap, false);
   } catch (e) { /* mất mạng tạm thời: lần báo sau sẽ thử lại */ }
 }
+// Tab nhóm của bảng Tăng/Giảm mạnh nhất (Thế giới | VN30 | HNX30), nhớ lựa chọn trên máy.
+let curGroup = 'world', sortDesc = true;
+// Pop-up "Xem thêm": bảng xếp hạng đầy đủ của nhóm đang chọn, sắp lại theo % mới nhất.
+function openMovers(dir) {
+  sortDesc = dir !== 'asc';
+  document.getElementById('mmodal').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderMovers();
+}
+function closeMovers() {
+  document.getElementById('mmodal').hidden = true;
+  document.body.style.overflow = '';
+}
+function toggleSort() { sortDesc = !sortDesc; renderMovers(); }
+function renderMovers() {
+  const modal = document.getElementById('mmodal');
+  if (!modal || modal.hidden) return;
+  const pct = r => { const v = parseFloat(r.querySelector('.mch').textContent); return isNaN(v) ? null : v; };
+  document.querySelectorAll('.mlist').forEach(list => {
+    const on = list.dataset.group === curGroup;
+    list.style.display = on ? '' : 'none';
+    if (!on) return;
+    document.getElementById('mmtitle').textContent = 'Bảng xếp hạng — ' + list.dataset.label;
+    const rows = [...list.querySelectorAll('.mrow')];
+    rows.sort((a, b) => {
+      const x = pct(a), y = pct(b);
+      if (x === null) return 1;
+      if (y === null) return -1;
+      return sortDesc ? y - x : x - y;
+    });
+    rows.forEach((r, i) => { r.querySelector('.mrank').textContent = i + 1; list.appendChild(r); });
+    document.getElementById('mmcount').textContent = rows.length + ' mã';
+  });
+  document.getElementById('msortbtn').textContent = sortDesc ? '↓ Tăng mạnh trước' : '↑ Giảm mạnh trước';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMovers(); });
+function setMoverGroup(g) {
+  curGroup = g;
+  try { localStorage.setItem('moverGroup', g); } catch (e) {}
+  document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('on', b.dataset.group === g));
+  document.querySelectorAll('.mgroup').forEach(d => d.classList.toggle('on', d.dataset.group === g));
+  renderMovers();
+}
+function initMoverGroup() {
+  let g = 'world';
+  try { g = localStorage.getItem('moverGroup') || 'world'; } catch (e) {}
+  if (!document.querySelector(`.mgroup[data-group="${g}"]`)) g = 'world';
+  setMoverGroup(g);
+}
+initMoverGroup();
 function connect() {
   if (es) es.close();
   es = new EventSource('/stream');
@@ -524,6 +663,7 @@ function connect() {
     lastMsgAt = Date.now();
     const snap = JSON.parse(ev.data);
     applyQuotes(snap, lastSnap !== null);
+    renderMovers();  // pop-up đang mở thì xếp hạng lại theo giá mới
     setLive(true, snap.ts);
     if (lastRv !== null && snap.rv !== lastRv) refreshSections();
     lastRv = snap.rv; lastSnap = snap;

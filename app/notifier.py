@@ -16,12 +16,14 @@ from .config import (ANOMALY_THRESHOLD_PCT, COLLECT_INTERVAL_SECONDS, DASHBOARD_
                      MOVE_ALERT_PCT, SPIKE_ALERT_PCT,
                      TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_DIGEST_HOURS,
                      TELEGRAM_ENABLED, TELEGRAM_MAX_NEWS_PER_ALERT, TELEGRAM_NEWS_MAX_AGE_HOURS,
-                     TELEGRAM_NEWS_REQUIRE_VERIFIED, TELEGRAM_PROXY)
+                     TELEGRAM_NEWS_GROUPS, TELEGRAM_NEWS_MODE, TELEGRAM_NEWS_REQUIRE_VERIFIED,
+                     TELEGRAM_PROXY, TELEGRAM_SILENT_HOURS)
 
 # Một cảnh báo = (danh sách khoá chống trùng, nội dung). Khoá đầu tiên quyết định đã gửi hay chưa;
 # mọi khoá được đánh dấu khi gửi thành công.
 Alert = Tuple[List[str], str]
-from .homepage import TAG_MAP, _SHORT_NAMES as SHORT_NAMES, _fmt as fmt_value
+from .homepage import (TAG_MAP, ZONE_META, ZONE_ORDER, _SHORT_NAMES as SHORT_NAMES,
+                       _fmt as fmt_value, _vn_time)
 
 VN_TZ = timezone(timedelta(hours=7))
 _MAX_LEN = 4000  # Telegram giới hạn 4096 ký tự / tin nhắn
@@ -88,7 +90,17 @@ def _chunks(text: str) -> List[str]:
     return parts
 
 
-def send_message(text: str) -> dict:
+def _silent_now() -> bool:
+    """Đang trong giờ yên lặng (TELEGRAM_SILENT_HOURS, giờ VN, vd "23-6")?"""
+    try:
+        start, end = (int(x) for x in TELEGRAM_SILENT_HOURS.split("-"))
+    except ValueError:
+        return False
+    h = datetime.now(VN_TZ).hour
+    return (h >= start or h < end) if start > end else (start <= h < end)
+
+
+def send_message(text: str, silent: bool = False) -> dict:
     global _last_error, _last_sent
     if not TELEGRAM_ENABLED:
         return {"ok": False,
@@ -101,6 +113,7 @@ def send_message(text: str) -> dict:
                     "text": part,
                     "parse_mode": "HTML",
                     "disable_web_page_preview": True,
+                    "disable_notification": silent,
                 })
                 data = r.json()
                 if not data.get("ok"):
@@ -218,17 +231,67 @@ def _unique_news(news: Dict[str, dict]) -> List[Tuple[dict, str]]:
     return out
 
 
-def _news_alerts(news: Dict[str, dict]) -> List[Alert]:
-    """Tin ảnh hưởng Cao, mới đăng (≤ TELEGRAM_NEWS_MAX_AGE_HOURS); tin đã xác nhận xếp trước."""
-    cands = [
-        (n, tag) for n, tag in _unique_news(news)
-        if n["impact"]["level"] >= 3
-        and n["age_hours"] is not None and n["age_hours"] <= TELEGRAM_NEWS_MAX_AGE_HOURS
-        and (n["verified"] or not TELEGRAM_NEWS_REQUIRE_VERIFIED)
-    ]
-    cands.sort(key=lambda x: (-x[0]["corroboration_count"], x[0]["age_hours"]))
-    return [(["news:" + hashlib.sha256(n["link"].encode("utf-8")).hexdigest()[:16]], _news_line(n, tag))
-            for n, tag in cands]
+def _news_key(link: str) -> str:
+    return "news:" + hashlib.sha256(link.encode("utf-8")).hexdigest()[:16]
+
+
+def _news_candidates(news: Dict[str, dict]) -> List[Tuple[str, dict]]:
+    """(nhóm, tin) thoả bộ lọc gửi Telegram: đúng nhóm đã chọn, mới đăng, đúng chế độ."""
+    seen, out = set(), []
+    for cls in ZONE_ORDER:
+        if TELEGRAM_NEWS_GROUPS and cls not in TELEGRAM_NEWS_GROUPS:
+            continue
+        for n in news.get(cls, {}).get("items", []):
+            age = n["age_hours"]
+            if (n["link"] in seen or age is None or age > TELEGRAM_NEWS_MAX_AGE_HOURS
+                    or (TELEGRAM_NEWS_MODE != "all" and n["impact"]["level"] < 3)
+                    or (TELEGRAM_NEWS_REQUIRE_VERIFIED and not n["verified"])):
+                continue
+            seen.add(n["link"])  # tin thuộc nhiều nhóm chỉ hiện ở nhóm đầu tiên
+            out.append((cls, n))
+    return out
+
+
+def _news_batch(news: Dict[str, dict]) -> Tuple[List[Tuple[str, dict]], List[str]]:
+    """Chọn tin MỚI cho một tin nhắn và danh sách khoá sẽ đánh dấu đã gửi.
+
+    Tin đã xác nhận & ảnh hưởng mạnh được ưu tiên; tin dư chưa đánh dấu nên sang chu kỳ sau.
+    Lần đầu bật chức năng: chỉ gửi các tin ưu tiên nhất, phần tồn đọng còn lại đánh dấu luôn
+    để không bị gửi dồn ở các chu kỳ sau.
+    """
+    cands = _news_candidates(news)
+    unsent = set(storage.filter_unsent([_news_key(n["link"]) for _, n in cands]))
+    fresh = [c for c in cands if _news_key(c[1]["link"]) in unsent]
+    fresh.sort(key=lambda c: (-int(c[1]["verified"]), -c[1]["impact"]["level"], c[1]["age_hours"]))
+    batch = fresh[:TELEGRAM_MAX_NEWS_PER_ALERT]
+    marked = fresh if storage.kv_get("news_notify_started") is None else batch
+    return batch, [_news_key(n["link"]) for _, n in marked]
+
+
+def _news_message(batch: List[Tuple[str, dict]]) -> str:
+    """Tin nhắn "Tin tức mới": chia theo nhóm như màn hình chính, mới nhất trước trong nhóm."""
+    lines = ["📰 <b>FinWatch — Tin tức mới</b>", f"🕒 {_vn_now()} (giờ VN) · {len(batch)} tin"]
+    for cls in ZONE_ORDER:
+        group = sorted((n for c, n in batch if c == cls), key=lambda n: n["age_hours"])
+        if not group:
+            continue
+        icon, title = ZONE_META[cls]
+        lines += ["", f"{icon} <b>{_esc(title)}</b> ({len(group)})"]
+        for n in group:
+            imp = n["impact"]
+            meta = [_vn_time(n["published"], n["age_hours"]), _esc(n["source_label"])]
+            if n["verified"]:
+                meta.append(f"✓ {n['corroboration_count']} nguồn")
+            if imp["level"] >= 2:
+                meta.append(f"{imp['direction_sym']} {imp['direction']}")
+            link = html.escape(n["link"], quote=True)
+            lines.append(f"{imp['level_sym']} <a href=\"{link}\">{_esc(n['vi_title'])}</a>\n"
+                         f"    <i>{' · '.join(meta)}</i>")
+            summary = n.get("vi_summary") or n.get("summary")
+            if summary:
+                lines.append(f"    {_esc(_short(summary, 160))}")
+    lines += ["", f"🔗 Xem tất cả: {_esc(DASHBOARD_URL)}"]
+    return "\n".join(lines)
 
 
 def _fresh(alerts: List[Alert]) -> List[Alert]:
@@ -254,40 +317,52 @@ def _tone_alert(tone: Optional[dict]) -> Optional[Tuple[str, str]]:
 
 
 def notify_run(run_id: str, results: List[dict]) -> dict:
-    """Gọi sau mỗi chu kỳ thu thập: gom các cảnh báo MỚI thành một tin nhắn."""
+    """Gọi sau mỗi chu kỳ thu thập. Gửi tối đa 2 tin nhắn:
+    1) "Biến động & cảnh báo" (giá, chính sách tiền tệ, chất lượng dữ liệu);
+    2) "Tin tức mới" theo nhóm. Mỗi tin nhắn đánh dấu đã gửi độc lập khi Telegram xác nhận.
+    """
     if not TELEGRAM_ENABLED:
         return {"sent": False, "reason": "disabled"}
 
     news = news_service.for_run(run_id)
     tone = news_service.market_tone(news)
+    silent = _silent_now()
+    out = {"silent": silent}
 
     moves = _fresh(_move_alerts(results) + _spike_alerts(results))
-    # Tin vượt quá giới hạn chưa bị đánh dấu -> tự động sang chu kỳ sau.
-    items = _fresh(_news_alerts(news))[:TELEGRAM_MAX_NEWS_PER_ALERT]
     quality = _fresh(_quality_alerts(results))
     tone_alert = _tone_alert(tone)
-
-    if not moves and not items and not quality and not tone_alert:
-        return {"sent": False, "reason": "no_new_alerts"}
-
-    lines = ["🚨 <b>FinWatch — Biến động &amp; tin mới</b>", f"🕒 {_vn_now()} (giờ VN)"]
-    if moves:
-        lines += ["", "<b>📈📉 Biến động mạnh</b>"] + [t for _, t in moves]
-    if items:
-        lines += ["", "<b>📰 Tin tức quan trọng</b>"] + [t for _, t in items]
-    if tone_alert:
-        lines += ["", "<b>🦅🕊️ Chính sách tiền tệ</b>", tone_alert[1]]
-    if quality:
-        lines += ["", "<b>🛡️ Kiểm chứng dữ liệu</b>"] + [t for _, t in quality]
-    lines += ["", f"🔗 {_esc(DASHBOARD_URL)}"]
-
-    res = send_message("\n".join(lines))
-    if res["ok"]:
-        storage.mark_sent([k for keys, _ in moves + items + quality for k in keys], _now_utc())
+    if moves or quality or tone_alert:
+        lines = ["🚨 <b>FinWatch — Biến động &amp; cảnh báo</b>", f"🕒 {_vn_now()} (giờ VN)"]
+        if moves:
+            lines += ["", "<b>📈📉 Biến động mạnh</b>"] + [t for _, t in moves]
         if tone_alert:
-            storage.kv_set("tone_class", tone_alert[0])
-    return {"sent": res["ok"], "error": res.get("error"), "move_alerts": len(moves),
-            "news_alerts": len(items), "quality_alerts": len(quality), "tone_alert": bool(tone_alert)}
+            lines += ["", "<b>🦅🕊️ Chính sách tiền tệ</b>", tone_alert[1]]
+        if quality:
+            lines += ["", "<b>🛡️ Kiểm chứng dữ liệu</b>"] + [t for _, t in quality]
+        lines += ["", f"🔗 {_esc(DASHBOARD_URL)}"]
+        res = send_message("\n".join(lines), silent=silent)
+        if res["ok"]:
+            storage.mark_sent([k for keys, _ in moves + quality for k in keys], _now_utc())
+            if tone_alert:
+                storage.kv_set("tone_class", tone_alert[0])
+        out.update(alerts_sent=res["ok"], alerts_error=res.get("error"), move_alerts=len(moves),
+                   quality_alerts=len(quality), tone_alert=bool(tone_alert))
+
+    batch, to_mark = _news_batch(news)
+    if batch:
+        res = send_message(_news_message(batch), silent=silent)
+        if res["ok"]:
+            storage.mark_sent(to_mark, _now_utc())
+            if storage.kv_get("news_notify_started") is None:
+                storage.kv_set("news_notify_started", _now_utc())
+        out.update(news_sent=res["ok"], news_error=res.get("error"), news_items=len(batch),
+                   news_skipped_backlog=len(to_mark) - len(batch))
+
+    out["sent"] = bool(out.get("alerts_sent") or out.get("news_sent"))
+    if len(out) == 2:
+        out["reason"] = "no_new_alerts"
+    return out
 
 
 # ---------------------------------------------------------------------------

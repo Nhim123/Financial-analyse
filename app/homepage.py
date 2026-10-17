@@ -41,6 +41,9 @@ ZONE_META = {
 }
 ZONE_ITEMS = 5
 
+# Crypto được đưa vào bảng Tăng/Giảm mạnh nhất (altcoin bị loại).
+MOVER_CRYPTO = {"BTC", "ETH"}
+
 _VN_TZ = timezone(timedelta(hours=7))
 
 
@@ -122,21 +125,36 @@ def build(results: List[dict], news: Dict[str, dict], tone: Optional[dict],
         ticker.append({"key": r["key"], "label": _SHORT_NAMES.get(r["key"], r["key"]),
                        "value": _fmt(price), "chg": chg})
 
-    # --- top movers theo % trong phiên, kèm sparkline lịch sử ---
-    movers = [(r, *_now(r)) for r in results]
-    movers = [m for m in movers if m[2] is not None]
-    gainers = sorted((m for m in movers if m[2] > 0), key=lambda m: -m[2])[:5]
-    losers = sorted((m for m in movers if m[2] < 0), key=lambda m: m[2])[:5]
+    # Chỉ số VN30 / HNX30 (chỉ có ở luồng giá trực tiếp) -> thêm vào ticker
+    vn_index = [(g, live_quotes[g]) for g in ("VN30", "HNX30") if g in live_quotes]
+    for g, q in vn_index:
+        ticker.append({"key": g, "label": g, "value": _fmt(q["price"]), "chg": q["chg"]})
 
-    def _mover(m):
-        r, price, chg, _ = m
-        return {
-            "key": r["key"], "name": _SHORT_NAMES.get(r["key"], r["name"]),
-            "value": _fmt(price), "chg": chg,
-            "spark": _sparkline(storage.consensus_history(r["key"], 24)),
-        }
-    gainers = [_mover(m) for m in gainers]
-    losers = [_mover(m) for m in losers]
+    # --- top movers theo % trong phiên, chia nhóm: Thế giới | VN30 | HNX30 ---
+    def _top(rows):
+        rows = [x for x in rows if x["chg"] is not None]
+        return (sorted((x for x in rows if x["chg"] > 0), key=lambda x: -x["chg"])[:5],
+                sorted((x for x in rows if x["chg"] < 0), key=lambda x: x["chg"])[:5])
+
+    world = []
+    for r in results:
+        if r["asset_class"] == "crypto" and r["key"] not in MOVER_CRYPTO:
+            continue  # bỏ altcoin, chỉ giữ BTC & ETH
+        price, chg, _ = _now(r)
+        world.append({"key": r["key"], "sym": r["key"], "name": _SHORT_NAMES.get(r["key"], r["name"]),
+                      "value": _fmt(price), "chg": chg, "vn": False,
+                      "spark": _sparkline(storage.consensus_history(r["key"], 24))})
+    mover_groups = [{"id": "world", "label": "Thế giới", "rows": world}]
+    for g in ("VN30", "HNX30"):
+        rows = [{"key": k, "sym": k[3:], "name": q.get("name", k[3:]), "value": f"{q['price'] / 1000:,.2f}",
+                 "chg": q["chg"], "vn": True, "spark": ""}
+                for k, q in live_quotes.items() if k.startswith("VN:") and q.get("group") == g]
+        mover_groups.append({"id": g, "label": g, "rows": rows})
+    for mg in mover_groups:
+        rows = mg.pop("rows")
+        mg["gainers"], mg["losers"] = _top(rows)
+        # Bảng đầy đủ cho pop-up "Xem thêm": xếp theo % trong phiên, mã chưa có % ở cuối.
+        mg["all"] = sorted(rows, key=lambda x: (x["chg"] is None, -(x["chg"] or 0)))
 
     # --- heatmap: mọi chỉ số, độ đậm theo |% trong phiên| ---
     heat = []
@@ -148,6 +166,9 @@ def build(results: List[dict], news: Dict[str, dict], tone: Optional[dict],
             "chg": chg, "alpha": round(a, 3),
             "dark_text": a <= 0.5,
         })
+    for g, q in vn_index:
+        a = min(abs(q["chg"]) / 2.5, 1.0) * 0.9 if q["chg"] is not None else 0.0
+        heat.append({"key": g, "name": g, "chg": q["chg"], "alpha": round(a, 3), "dark_text": a <= 0.5})
 
     # --- cảnh báo: suy ra từ kiểm chứng số liệu + tin ảnh hưởng cao ---
     alerts = []
@@ -198,7 +219,7 @@ def build(results: List[dict], news: Dict[str, dict], tone: Optional[dict],
 
     now = datetime.now(timezone.utc)
     return {
-        "cards": cards, "ticker": ticker, "gainers": gainers, "losers": losers,
+        "cards": cards, "ticker": ticker, "mover_groups": mover_groups,
         "heat": heat, "alerts": alerts, "alert_count": alert_count,
         "groups": groups, "tone": tone, "generated": now.isoformat(timespec="seconds"),
     }

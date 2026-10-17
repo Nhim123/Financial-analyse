@@ -235,7 +235,13 @@ TELEGRAM_NEWS_MAX_AGE_HOURS = float(os.getenv("TELEGRAM_NEWS_MAX_AGE_HOURS", "6"
 MOVE_ALERT_PCT = {"stock": 1.5, "commodity": 2.5, "crypto": 5.0, "fx": 0.8}
 # Ngưỡng "ĐỘT BIẾN" trong khoảng ~1 giờ (so với lịch sử thu thập của hệ thống).
 SPIKE_ALERT_PCT = {"stock": 1.0, "commodity": 1.5, "crypto": 3.0, "fx": 0.5}
-# Số tin tối đa trong một tin nhắn cảnh báo (chống spam).
-TELEGRAM_MAX_NEWS_PER_ALERT = int(os.getenv("TELEGRAM_MAX_NEWS_PER_ALERT", "5"))
+# Số tin tối đa trong một tin nhắn "Tin tức mới" (tin dư chuyển sang chu kỳ sau).
+TELEGRAM_MAX_NEWS_PER_ALERT = int(os.getenv("TELEGRAM_MAX_NEWS_PER_ALERT", "8"))
+# Chế độ gửi tin tức mới: "important" = chỉ tin ảnh hưởng Cao; "all" = mọi tin mới.
+TELEGRAM_NEWS_MODE = os.getenv("TELEGRAM_NEWS_MODE", "important").strip().lower()
+# Nhóm tin nhận thông báo: stock, commodity, crypto, vn (cách nhau dấu phẩy; để trống = tất cả).
+TELEGRAM_NEWS_GROUPS = [g.strip() for g in os.getenv("TELEGRAM_NEWS_GROUPS", "").split(",") if g.strip()]
+# Giờ yên lặng (giờ VN, dạng "23-6"): tin vẫn gửi nhưng không reo chuông. Để trống = luôn reo.
+TELEGRAM_SILENT_HOURS = os.getenv("TELEGRAM_SILENT_HOURS", "23-6").strip()
 # Địa chỉ dashboard chèn vào tin nhắn (đổi thành IP/tên miền nếu xem từ điện thoại).
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8000").rstrip("/")

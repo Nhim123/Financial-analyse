@@ -91,15 +91,25 @@ Khởi động lại máy, mở Docker Desktop, đợi báo *Engine running*, sa
 Luồng hoàn chỉnh: **thu thập → kiểm chứng → hiển thị giao diện → gửi Telegram**.
 
 **Hệ thống gửi gì?**
-- **Cảnh báo tức thời** sau mỗi chu kỳ thu thập (gộp thành 1 tin nhắn, chỉ gửi khi có điều MỚI):
+- **🚨 Biến động & cảnh báo** — sau mỗi chu kỳ thu thập, chỉ gửi khi có điều MỚI:
   - 🚀📉 **Biến động mạnh trong phiên** (crypto, tỷ giá: 24h) vượt ngưỡng — chứng khoán ±1.5%,
     hàng hoá ±2.5%, crypto ±5%, tỷ giá ±0.8%. Nếu biến động tăng lên gấp 2, gấp 3 ngưỡng sẽ báo
     thêm (mỗi bậc 1 lần/ngày). % trong phiên lấy từ nguồn (CNBC, Yahoo, CoinGecko, Binance).
   - ⚡ **Đột biến trong ~1 giờ** — chứng khoán ±1%, hàng hoá ±1.5%, crypto ±3%, tỷ giá ±0.5%.
-  - 📰 **Tin ảnh hưởng Cao** đăng trong 6 giờ gần nhất (tiêu đề + tóm tắt tiếng Việt, link gốc;
-    tin được ≥2 hãng xác nhận xếp trước, tối đa 5 tin/lần — tin dư chuyển sang lần sau).
   - 🦅🕊️ Giọng điệu chính sách tiền tệ đổi chiều (Dovish ↔ Hawkish).
   - 🛡️ Sự cố dữ liệu: chỉ số mất toàn bộ nguồn, các nguồn lệch nhau vượt ngưỡng.
+- **📰 Tin tức mới** — tin nhắn RIÊNG, chia theo 4 nhóm như màn hình chính (📈 Chứng khoán thế giới ·
+  🛢️ Vàng & Dầu · 🪙 Tiền mã hoá · 🇻🇳 CK & Doanh nghiệp VN). Mỗi tin: mức ảnh hưởng (🔴/🟠/⚪), tiêu đề
+  (link bài gốc), giờ đăng (giờ VN), nguồn, ✓ số nguồn xác nhận, chiều tác động, tóm tắt.
+  - `TELEGRAM_NEWS_MODE`: `important` (mặc định — chỉ tin ảnh hưởng Cao) hoặc `all` (mọi tin mới).
+    Đo thực tế: ~1,2 tin mới mỗi 10 phút (~170 tin/ngày); chế độ `important` khoảng một nửa.
+  - `TELEGRAM_NEWS_GROUPS`: chỉ nhận một số nhóm, vd `vn,crypto` (để trống = tất cả).
+  - Chỉ tin đăng trong `TELEGRAM_NEWS_MAX_AGE_HOURS` giờ (mặc định 6); tối đa
+    `TELEGRAM_MAX_NEWS_PER_ALERT` tin/tin nhắn (mặc định 8), tin dư sang chu kỳ sau.
+  - **Lần đầu bật** chỉ gửi các tin ưu tiên nhất, phần tồn đọng được bỏ qua (không gửi dồn).
+  - **Giờ yên lặng** `TELEGRAM_SILENT_HOURS=23-6`: tin vẫn tới nhưng không reo chuông.
+  - Tin Việt Nam được chấm mức ảnh hưởng bằng từ khoá tiếng Việt (giảm sàn, lao dốc, khởi tố,
+    huỷ niêm yết, lãi kỷ lục…) trong `app/enrich.py`.
 - **Bản tin định kỳ** (mặc định 8h & 20h giờ VN): biến động đáng chú ý nhất, giá + % trong phiên
   của mọi chỉ số, kết quả kiểm chứng, chỉ số Dovish/Hawkish, 5 tin nổi bật.
 
