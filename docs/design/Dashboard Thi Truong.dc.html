@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #d81e2c; text-decoration: none; }
+  a:hover { color: #a5111d; }
+  @keyframes tickerRun { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes flashUp { 0% { background: rgba(18,161,80,.18); } 100% { background: transparent; } }
+  @keyframes flashDn { 0% { background: rgba(229,72,77,.18); } 100% { background: transparent; } }
+  @keyframes pulseDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.8); } }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd3c9; border-radius: 8px; }
+</style>
+</helmet>
+
+<section id="turn2" style="min-height:100vh; background:#d3dacf; background-image:radial-gradient(circle at 1px 1px, rgba(15,27,23,.06) 1px, transparent 0); background-size:22px 22px; padding:56px 48px; display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start; font-family:'IBM Plex Sans',sans-serif;">
+
+  <!-- ============ OPTION 2A · News + Alerts ============ -->
+  <article id="2a" style="position:relative; width:1440px; flex:0 0 auto;">
+    <div style="position:absolute; top:-40px; left:0; display:flex; align-items:baseline; gap:12px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 11px; border-radius:8px; background:{{ accent }}; color:#fff; font:700 13px/1 'IBM Plex Mono',monospace; letter-spacing:.04em;">2A</span>
+      <span style="font:600 15px/1 'IBM Plex Sans'; color:#20302a;">Tin tức &amp; Cảnh báo</span>
+      <span style="font:400 13px/1 'IBM Plex Sans'; color:#4a5a53;">— bỏ biểu đồ giữa; ưu tiên dòng tin cập nhật liên tục + bảng cảnh báo real-time</span>
+    </div>
+
+    <div style="width:1440px; height:920px; background:#f4f6f2; border-radius:22px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(15,27,23,.4); border:1px solid #e0e5dd; display:flex; flex-direction:column;">
+      <!-- toolbar (kiểu 1B) -->
+      <div style="height:56px; background:#fff; border-bottom:1px solid #e6eae4; display:flex; align-items:center; padding:0 26px; gap:22px; flex:0 0 auto;">
+        <div style="width:34px; height:34px; border-radius:10px; background:{{ accent }}; display:flex; align-items:center; justify-content:center; color:#fff; font:700 17px/1 'IBM Plex Mono'; flex:0 0 auto;">Ʌ</div>
+        <div style="display:flex; gap:4px;">
+          <sc-for list="{{ tabsB }}" as="tb" hint-placeholder-count="4">
+            <span onClick="{{ tb.onClick }}" style="font:600 13px/1 'IBM Plex Sans'; color:{{ tb.col }}; background:{{ tb.bg }}; padding:8px 14px; border-radius:9px; cursor:pointer;">{{ tb.label }}</span>
+          </sc-for>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 13px; border-radius:9px; background:#fff; border:1px solid #e0e5dd; color:#6b7770;">
+          <span style="font-size:14px;">⌕</span><span style="font:400 13px/1 'IBM Plex Sans';">Tìm mã, chỉ số…</span>
+        </div>
+        <span style="font:500 12px/1 'IBM Plex Mono'; color:#6b7770;">{{ clock }}</span>
+      </div>
+      <!-- ticker -->
+      <div style="height:38px; background:#0f1b17; overflow:hidden; display:flex; align-items:center; flex:0 0 auto;">
+        <div style="display:flex; width:200%; animation:tickerRun 38s linear infinite;">
+          <div style="display:flex; align-items:center;">
+            <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+              <div style="display:flex; align-items:center; gap:8px; padding:0 20px; border-right:1px solid #24332c;">
+                <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf; letter-spacing:.03em;">{{ t.label }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center;">
+            <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+              <div style="display:flex; align-items:center; gap:8px; padding:0 20px; border-right:1px solid #24332c;">
+                <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf; letter-spacing:.03em;">{{ t.label }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ showOverview }}" hint-placeholder-val="{{ true }}">
+      <!-- header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 28px 14px; flex:0 0 auto;">
+        <div>
+          <div style="font:700 22px/1.1 'IBM Plex Sans'; color:#0f1b17;">Trung tâm tin tức &amp; cảnh báo</div>
+          <div style="font:400 13px/1 'IBM Plex Sans'; color:#6b7770; margin-top:6px;">{{ today }}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; background:#e7f6ec;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+            <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">{{ marketLabel }}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 14px; border-radius:9px; background:#fdeaef;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#e5484d; animation:pulseDot 1.4s ease-in-out infinite;"></span>
+            <span style="font:600 12px/1 'IBM Plex Sans'; color:#c0303a;">Chế độ cảnh báo · BẬT</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- index cards compact -->
+      <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:0 28px 16px; flex:0 0 auto;">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <div style="background:#fff; border:1px solid #e6eae4; border-radius:14px; padding:11px 13px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <span style="font:600 12px/1 'IBM Plex Sans'; color:#0f1b17;">{{ c.name }}</span>
+              <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ c.col }};">{{ c.arrow }}{{ c.pctStr }}</span>
+            </div>
+            <span style="font:600 18px/1 'IBM Plex Mono'; color:#0f1b17;">{{ c.valStr }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- main: news (hero) | gainers/losers | alerts + lịch tuần -->
+      <div style="flex:1; display:flex; flex-direction:column; gap:14px; padding:0 28px 22px; min-height:0;">
+      <div style="display:grid; grid-template-columns:1fr 268px 420px; gap:16px; flex:1; min-height:0;">
+        <!-- news feed -->
+        <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:18px 20px; display:flex; flex-direction:column; min-height:0;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <span style="font:700 16px/1 'IBM Plex Sans'; color:#0f1b17;">Dòng tin thị trường</span>
+              <span style="display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec;"><span style="width:6px; height:6px; border-radius:50%; background:#e5484d; animation:pulseDot 1.4s ease-in-out infinite;"></span><span style="font:600 10px/1 'IBM Plex Sans'; color:#0e7a3c;">TRỰC TIẾP</span></span>
+            </div>
+            <span style="font:400 11px/1 'IBM Plex Sans'; color:#93a099;">Cập nhật tự động</span>
+          </div>
+          <div style="flex:1; overflow:hidden; margin-top:12px; display:flex; flex-direction:column; gap:9px;">
+            <sc-for list="{{ feed }}" as="f" hint-placeholder-count="7">
+              <div style="display:flex; gap:13px; padding:12px 14px; border-radius:13px; background:{{ f.newBg }}; border:1px solid #eef1ec; border-left:3px solid {{ f.newBorder }};">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; padding-top:1px;">
+                  <span style="font:600 12px/1 'IBM Plex Mono'; color:#4a5a53;">{{ f.time }}</span>
+                  <span style="display:{{ f.newDisp }}; align-items:center; font:700 8px/1 'IBM Plex Sans'; letter-spacing:.06em; color:#fff; background:{{ accent }}; padding:3px 5px; border-radius:4px;">MỚI</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:{{ f.tagCol }}; background:{{ f.tagBg }}; padding:3px 7px; border-radius:5px;">{{ f.tag }}</span>
+                    <span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099;">{{ f.source }}</span>
+                  </div>
+                  <div style="font:600 14px/1.4 'IBM Plex Sans'; color:#1c2a24; margin-top:8px; text-wrap:pretty;">{{ f.title }}</div>
+                  <div style="font:400 12px/1.5 'IBM Plex Sans'; color:#6b7770; margin-top:5px; text-wrap:pretty;">{{ f.sub }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- gainers + losers (kiểu 1A) -->
+        <div style="display:flex; flex-direction:column; gap:16px; min-height:0;">
+        <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; flex:1; min-height:0;">
+          <div style="display:flex; align-items:center; gap:7px; flex:0 0 auto;">
+            <span style="font-size:13px; color:#12a150;">▲</span>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Tăng mạnh nhất</span>
+          </div>
+          <div style="flex:1; overflow:hidden; margin-top:8px; display:flex; flex-direction:column;">
+            <sc-for list="{{ gainers }}" as="g" hint-placeholder-count="5">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px solid #f4f6f2;">
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                  <span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ g.sym }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:96px;">{{ g.name }}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px; flex:0 0 auto;">
+                  <svg viewBox="0 0 100 30" width="40" height="16" preserveAspectRatio="none"><polyline points="{{ g.spark }}" fill="none" stroke="#12a150" stroke-width="2.6" stroke-linecap="round"/></svg>
+                  <div style="text-align:right;">
+                    <div style="font:500 12px/1 'IBM Plex Mono'; color:#0f1b17;">{{ g.priceStr }}</div>
+                    <div style="font:600 11px/1 'IBM Plex Mono'; color:#12a150; margin-top:3px;">{{ g.pctStr }}</div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; flex:1; min-height:0;">
+          <div style="display:flex; align-items:center; gap:7px; flex:0 0 auto;">
+            <span style="font-size:13px; color:#e5484d;">▼</span>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Giảm mạnh nhất</span>
+          </div>
+          <div style="flex:1; overflow:hidden; margin-top:8px; display:flex; flex-direction:column;">
+            <sc-for list="{{ losers }}" as="l" hint-placeholder-count="5">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px solid #f4f6f2;">
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                  <span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ l.sym }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:96px;">{{ l.name }}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px; flex:0 0 auto;">
+                  <svg viewBox="0 0 100 30" width="40" height="16" preserveAspectRatio="none"><polyline points="{{ l.spark }}" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/></svg>
+                  <div style="text-align:right;">
+                    <div style="font:500 12px/1 'IBM Plex Mono'; color:#0f1b17;">{{ l.priceStr }}</div>
+                    <div style="font:600 11px/1 'IBM Plex Mono'; color:#e5484d; margin-top:3px;">{{ l.pctStr }}</div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </div>
+
+        <!-- right: alerts + heatmap -->
+        <div style="display:flex; flex-direction:column; gap:16px; min-height:0;">
+          <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; flex:1.5; display:flex; flex-direction:column; min-height:0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+              <div style="display:flex; align-items:center; gap:9px;">
+                <span style="font-size:17px; color:#e5484d;">⚠</span>
+                <span style="font:700 15px/1 'IBM Plex Sans'; color:#0f1b17;">Cảnh báo quan trọng</span>
+              </div>
+              <span style="display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; padding:0 8px; border-radius:12px; background:#fdeaef; color:#c0303a; font:700 12px/1 'IBM Plex Mono';">{{ alertCount }}</span>
+            </div>
+            <div style="flex:1; overflow:hidden; margin-top:8px; display:flex; flex-direction:column;">
+              <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="6">
+                <div style="display:flex; gap:11px; padding:11px 0; border-bottom:1px solid #f4f6f2;">
+                  <div style="width:34px; height:34px; border-radius:9px; background:{{ a.sevBg }}; display:flex; align-items:center; justify-content:center; font-size:14px; color:{{ a.iconCol }}; flex:0 0 auto;">{{ a.icon }}</div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:7px;">
+                      <span style="font:700 9px/1 'IBM Plex Sans'; letter-spacing:.06em; color:{{ a.sevCol }}; background:{{ a.sevBg }}; padding:3px 6px; border-radius:5px;">{{ a.sev }}</span>
+                      <span style="font:400 10px/1 'IBM Plex Mono'; color:#93a099;">{{ a.time }}</span>
+                    </div>
+                    <div style="font:600 13px/1.3 'IBM Plex Sans'; color:#0f1b17; margin-top:6px;">{{ a.title }}</div>
+                    <div style="font:400 11px/1.3 'IBM Plex Sans'; color:#6b7770; margin-top:3px;">{{ a.detail }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- sector heatmap compact -->
+          <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:15px 18px; flex:1; display:flex; flex-direction:column; min-height:0;">
+            <span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17; flex:0 0 auto;">Heatmap ngành</span>
+            <div style="flex:1; margin-top:12px; display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:1fr; gap:7px; min-height:0;">
+              <sc-for list="{{ sectors }}" as="s" hint-placeholder-count="12">
+                <div style="border-radius:10px; background:{{ s.bg }}; padding:8px 9px; display:flex; flex-direction:column; justify-content:space-between;">
+                  <span style="font:600 10px/1.1 'IBM Plex Sans'; color:{{ s.txtCol }};">{{ s.name }}</span>
+                  <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ s.txtCol }};">{{ s.pctStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- lịch sự kiện trong tuần -->
+      <div style="flex:0 0 auto; background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{ accent }}" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Lịch sự kiện dự kiến trong tuần</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#e5484d;"></span><span style="font:500 11px/1 'IBM Plex Sans'; color:#6b7770;">Cao</span></div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#b45309;"></span><span style="font:500 11px/1 'IBM Plex Sans'; color:#6b7770;">Trung bình</span></div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7d8f86;"></span><span style="font:500 11px/1 'IBM Plex Sans'; color:#6b7770;">Thấp</span></div>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:13px;">
+          <sc-for list="{{ week }}" as="d" hint-placeholder-count="5">
+            <div style="display:flex; flex-direction:column; gap:8px; min-width:0;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between; padding:6px 11px; border-radius:9px; background:{{ d.headBg }};">
+                <span style="font:700 12px/1 'IBM Plex Sans'; color:{{ d.headCol }};">{{ d.day }}</span>
+                <span style="font:500 11px/1 'IBM Plex Mono'; color:{{ d.dateCol }};">{{ d.date }}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <sc-for list="{{ d.events }}" as="e" hint-placeholder-count="2">
+                  <div style="display:flex; gap:8px; padding:8px 9px; border-radius:9px; background:#f8faf7; border:1px solid #eef1ec;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:{{ e.dotCol }}; margin-top:4px; flex:0 0 auto;"></span>
+                    <div style="min-width:0;">
+                      <div style="font:600 10px/1 'IBM Plex Mono'; color:#6b7770;">{{ e.time }}</div>
+                      <div style="font:500 11px/1.35 'IBM Plex Sans'; color:#1c2a24; margin-top:4px; text-wrap:pretty;">{{ e.title }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== TAB: Cổ phiếu Việt Nam ===== -->
+      <sc-if value="{{ showStocks }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:18px 28px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+          <div>
+            <div style="font:700 22px/1.1 'IBM Plex Sans'; color:#0f1b17;">Cổ phiếu Việt Nam</div>
+            <div style="font:400 13px/1 'IBM Plex Sans'; color:#6b7770; margin-top:6px;">Sàn HOSE · {{ today }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px; height:36px; padding:0 15px; border-radius:10px; background:#fff; border:1px solid #e6eae4;">
+              <span style="font:600 12px/1 'IBM Plex Mono'; color:#12a150;">{{ breadthBar.up }} ↑</span>
+              <span style="font:600 12px/1 'IBM Plex Mono'; color:#c9a91a;">{{ breadthBar.flat }} —</span>
+              <span style="font:600 12px/1 'IBM Plex Mono'; color:#e5484d;">{{ breadthBar.down }} ↓</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 13px; border-radius:10px; background:#e7f6ec;">
+              <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+              <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">{{ marketLabel }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 372px; gap:16px; margin-top:16px; flex:1; min-height:0;">
+          <!-- bảng giá -->
+          <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; display:flex; flex-direction:column; min-height:0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+              <span style="font:700 15px/1 'IBM Plex Sans'; color:#0f1b17;">Bảng giá cổ phiếu · HOSE</span>
+              <span style="font:500 11px/1 'IBM Plex Sans'; color:{{ accent }}; cursor:pointer;">Xem tất cả →</span>
+            </div>
+            <div style="display:grid; grid-template-columns:62px 1fr 60px 92px 74px 84px; gap:10px; margin-top:14px; padding-bottom:9px; border-bottom:1px solid #eef1ec; font:600 10px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099; flex:0 0 auto;">
+              <span>Mã</span><span>Tên</span><span></span><span style="text-align:right;">Giá</span><span style="text-align:right;">+/-</span><span style="text-align:right;">KL</span>
+            </div>
+            <div style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+              <sc-for list="{{ movers }}" as="m" hint-placeholder-count="12">
+                <div style="display:grid; grid-template-columns:62px 1fr 60px 92px 74px 84px; gap:10px; align-items:center; padding:0; flex:1; border-bottom:1px solid #f4f6f2;">
+                  <span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ m.sym }}</span>
+                  <span style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</span>
+                  <svg viewBox="0 0 100 30" width="52" height="20" preserveAspectRatio="none"><polyline points="{{ m.spark }}" fill="none" stroke="{{ m.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+                  <span style="font:500 13px/1 'IBM Plex Mono'; color:#0f1b17; text-align:right;">{{ m.priceStr }}</span>
+                  <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ m.col }}; text-align:right;">{{ m.pctStr }}</span>
+                  <span style="font:400 12px/1 'IBM Plex Mono'; color:#6b7770; text-align:right;">{{ m.volStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- cột phải -->
+          <div style="display:flex; flex-direction:column; gap:14px; min-height:0;">
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:15px 18px; flex:0 0 auto;">
+              <span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Độ rộng thị trường</span>
+              <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:13px;">
+                <div style="width:{{ breadthBar.upPct }}; background:#12a150;"></div>
+                <div style="width:{{ breadthBar.flatPct }}; background:#c9b23a;"></div>
+                <div style="width:{{ breadthBar.downPct }}; background:#e5484d;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-top:10px; font:600 12px/1 'IBM Plex Mono';">
+                <span style="color:#12a150;">{{ breadthBar.up }} tăng</span>
+                <span style="color:#c9a91a;">{{ breadthBar.flat }} đứng</span>
+                <span style="color:#e5484d;">{{ breadthBar.down }} giảm</span>
+              </div>
+            </div>
+
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:15px 18px; flex:0 0 auto;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                <span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Thanh khoản phiên</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ liquidity.deltaCol }};">{{ liquidity.deltaStr }}</span>
+              </div>
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-top:10px;">
+                <div>
+                  <div style="font:600 22px/1 'IBM Plex Mono'; color:#0f1b17;">{{ liquidity.totalStr }}</div>
+                  <div style="font:400 11px/1 'IBM Plex Sans'; color:#93a099; margin-top:5px;">{{ liquidity.volStr }} · TB20: {{ liquidity.avgStr }}</div>
+                </div>
+                <div style="display:flex; align-items:flex-end; gap:3px; height:34px;">
+                  <sc-for list="{{ liquidity.bars }}" as="b" hint-placeholder-count="16">
+                    <div style="width:5px; height:{{ b.h }}; background:{{ accent }}; opacity:.55; border-radius:2px 2px 0 0;"></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid #eef1ec;">
+                <div style="flex:1;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#6b7770;">HOSE · {{ liquidity.hosePct }}</div><div style="font:600 12px/1 'IBM Plex Mono'; color:#0f1b17; margin-top:4px;">{{ liquidity.hoseStr }}</div></div>
+                <div style="flex:1;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#6b7770;">HNX · {{ liquidity.hnxPct }}</div><div style="font:600 12px/1 'IBM Plex Mono'; color:#0f1b17; margin-top:4px;">{{ liquidity.hnxStr }}</div></div>
+                <div style="flex:1;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#6b7770;">UPCOM · {{ liquidity.upcomPct }}</div><div style="font:600 12px/1 'IBM Plex Mono'; color:#0f1b17; margin-top:4px;">{{ liquidity.upcomStr }}</div></div>
+              </div>
+            </div>
+
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:15px 18px; flex:0 0 auto;">
+              <span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Dòng tiền chủ động</span>
+              <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:13px; background:#f0f3ee;">
+                <div style="width:{{ flow.buyPct }}; background:#12a150;"></div>
+                <div style="width:{{ flow.sellPct }}; background:#e5484d;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                <div><div style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Mua chủ động</div><div style="font:600 14px/1 'IBM Plex Mono'; color:#12a150; margin-top:4px;">{{ flow.buyStr }}</div></div>
+                <div style="text-align:right;"><div style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Bán chủ động</div><div style="font:600 14px/1 'IBM Plex Mono'; color:#e5484d; margin-top:4px;">{{ flow.sellStr }}</div></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:10px; border-top:1px solid #eef1ec;">
+                <span style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Khối ngoại ròng</span>
+                <span style="font:600 14px/1 'IBM Plex Mono'; color:{{ flow.foreignCol }};">{{ flow.foreignNetStr }}</span>
+              </div>
+            </div>
+
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:15px 18px; flex:1; display:flex; flex-direction:column; min-height:0;">
+              <span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17; flex:0 0 auto;">Heatmap ngành</span>
+              <div style="flex:1; margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:1fr; gap:7px; min-height:0;">
+                <sc-for list="{{ sectors }}" as="s" hint-placeholder-count="12">
+                  <div style="border-radius:10px; background:{{ s.bg }}; padding:8px 9px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <span style="font:600 10px/1.1 'IBM Plex Sans'; color:{{ s.txtCol }};">{{ s.name }}</span>
+                    <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ s.txtCol }};">{{ s.pctStr }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:0 0 auto; margin-top:14px; background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 18px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <span style="display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec;"><span style="width:6px; height:6px; border-radius:50%; background:#e5484d; animation:pulseDot 1.4s ease-in-out infinite;"></span><span style="font:600 10px/1 'IBM Plex Sans'; color:#0e7a3c;">TRỰC TIẾP</span></span>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Tin cổ phiếu Việt Nam</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;">
+            <sc-for list="{{ stockNews }}" as="n" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:6px; padding:11px 13px; border-radius:12px; background:#f8faf7; border:1px solid #eef1ec;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:{{ n.tagCol }}; background:{{ n.tagBg }}; padding:3px 6px; border-radius:5px;">{{ n.tag }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Mono'; color:#93a099;">{{ n.time }} · {{ n.source }}</span>
+                </div>
+                <div style="font:600 12.5px/1.35 'IBM Plex Sans'; color:#1c2a24; text-wrap:pretty;">{{ n.title }}</div>
+                <div style="font:400 11px/1.45 'IBM Plex Sans'; color:#6b7770; text-wrap:pretty;">{{ n.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== TAB: Giá vàng, dầu, crypto ===== -->
+      <sc-if value="{{ showCommodity }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:18px 28px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+          <div>
+            <div style="font:700 22px/1.1 'IBM Plex Sans'; color:#0f1b17;">Giá vàng, dầu &amp; tiền mã hóa</div>
+            <div style="font:400 13px/1 'IBM Plex Sans'; color:#6b7770; margin-top:6px;">Hàng hóa &amp; Crypto · {{ today }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 13px; border-radius:10px; background:#e7f6ec;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+            <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">Cập nhật 24/7</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; flex:1; min-height:0;">
+          <!-- trái: crypto -->
+          <div style="display:flex; flex-direction:column; gap:14px; min-height:0;">
+            <!-- BTC hero -->
+            <div style="flex:0 0 auto; background:#0f1b17; border-radius:20px; padding:20px 24px; color:#fff; display:flex; flex-direction:column; height:214px; position:relative; overflow:hidden;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; z-index:1;">
+                <div>
+                  <div style="font:600 12px/1 'IBM Plex Sans'; color:#8fa89d; letter-spacing:.04em;">TIỀN MÃ HÓA · DẪN DẮT</div>
+                  <div style="font:700 20px/1 'IBM Plex Sans'; margin-top:9px;">{{ cryHero.name }} <span style="color:#8fa89d; font-weight:500;">{{ cryHero.sym }}</span></div>
+                  <div style="display:flex; align-items:baseline; gap:12px; margin-top:11px;">
+                    <span style="font:600 34px/1 'IBM Plex Mono'; letter-spacing:-.02em;">{{ cryHero.valStr }}</span>
+                    <span style="font:600 15px/1 'IBM Plex Mono'; color:{{ cryHero.col }};">{{ cryHero.arrow }} {{ cryHero.pctStr }}</span>
+                  </div>
+                </div>
+                <div style="display:flex; gap:18px;">
+                  <div style="text-align:right;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#8fa89d;">Vốn hóa</div><div style="font:600 13px/1 'IBM Plex Mono'; margin-top:5px;">{{ cryHero.capStr }}</div></div>
+                  <div style="text-align:right;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#8fa89d;">KL 24h</div><div style="font:600 13px/1 'IBM Plex Mono'; margin-top:5px;">{{ cryHero.volStr }}</div></div>
+                </div>
+              </div>
+              <div style="flex:1; margin-top:6px; position:relative; min-height:0;">
+                <svg viewBox="0 0 700 180" width="100%" height="100%" preserveAspectRatio="none" style="display:block; position:absolute; inset:0;">
+                  <path d="{{ cryArea }}" fill="rgba(94,227,154,.1)"/>
+                  <path d="{{ cryLine }}" fill="none" stroke="#5ee39a" stroke-width="2.4" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <!-- crypto table -->
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; flex:1; display:flex; flex-direction:column; min-height:0;">
+              <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17; flex:0 0 auto;">Tiền mã hóa</span>
+              <div style="display:grid; grid-template-columns:1fr 56px 108px 78px; gap:10px; margin-top:12px; padding-bottom:8px; border-bottom:1px solid #eef1ec; font:600 10px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099; flex:0 0 auto;">
+                <span>Đồng</span><span></span><span style="text-align:right;">Giá</span><span style="text-align:right;">24h</span>
+              </div>
+              <div style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                <sc-for list="{{ crypto }}" as="c" hint-placeholder-count="8">
+                  <div style="display:grid; grid-template-columns:1fr 56px 108px 78px; gap:10px; align-items:center; flex:1; border-bottom:1px solid #f4f6f2;">
+                    <div style="display:flex; flex-direction:column; gap:2px; min-width:0;"><span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ c.sym }}</span><span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099;">{{ c.name }}</span></div>
+                    <svg viewBox="0 0 100 30" width="48" height="18" preserveAspectRatio="none"><polyline points="{{ c.spark }}" fill="none" stroke="{{ c.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+                    <span style="font:500 13px/1 'IBM Plex Mono'; color:#0f1b17; text-align:right;">{{ c.valStr }}</span>
+                    <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ c.col }}; text-align:right;">{{ c.pctStr }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- phải: hàng hóa -->
+          <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; display:flex; flex-direction:column; min-height:0;">
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17; flex:0 0 auto;">Vàng, dầu &amp; hàng hóa</span>
+            <div style="flex:1; margin-top:12px; display:grid; grid-template-columns:repeat(2,1fr); grid-auto-rows:1fr; gap:11px; min-height:0;">
+              <sc-for list="{{ commod }}" as="cm" hint-placeholder-count="8">
+                <div style="border:1px solid #e6eae4; border-radius:14px; padding:12px 13px; display:flex; flex-direction:column; justify-content:space-between; min-height:0;">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <span style="font:600 12px/1.1 'IBM Plex Sans'; color:#0f1b17;">{{ cm.name }}</span>
+                    <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ cm.col }};">{{ cm.arrow }}{{ cm.pctStr }}</span>
+                  </div>
+                  <span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099; margin-top:4px;">{{ cm.unit }}</span>
+                  <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-top:6px;">
+                    <span style="font:600 17px/1 'IBM Plex Mono'; color:#0f1b17;">{{ cm.valStr }}</span>
+                    <svg viewBox="0 0 100 30" width="54" height="22" preserveAspectRatio="none"><polyline points="{{ cm.spark }}" fill="none" stroke="{{ cm.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:0 0 auto; margin-top:14px; background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 18px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <span style="display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec;"><span style="width:6px; height:6px; border-radius:50%; background:#e5484d; animation:pulseDot 1.4s ease-in-out infinite;"></span><span style="font:600 10px/1 'IBM Plex Sans'; color:#0e7a3c;">TRỰC TIẾP</span></span>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Tin vàng, dầu &amp; crypto</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;">
+            <sc-for list="{{ commodNews }}" as="n" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:6px; padding:11px 13px; border-radius:12px; background:#f8faf7; border:1px solid #eef1ec;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:{{ n.tagCol }}; background:{{ n.tagBg }}; padding:3px 6px; border-radius:5px;">{{ n.tag }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Mono'; color:#93a099;">{{ n.time }} · {{ n.source }}</span>
+                </div>
+                <div style="font:600 12.5px/1.35 'IBM Plex Sans'; color:#1c2a24; text-wrap:pretty;">{{ n.title }}</div>
+                <div style="font:400 11px/1.45 'IBM Plex Sans'; color:#6b7770; text-wrap:pretty;">{{ n.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== TAB: FX ===== -->
+      <sc-if value="{{ showFx }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:18px 28px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;">
+          <div>
+            <div style="font:700 22px/1.1 'IBM Plex Sans'; color:#0f1b17;">Thị trường ngoại hối</div>
+            <div style="font:400 13px/1 'IBM Plex Sans'; color:#6b7770; margin-top:6px;">Tỷ giá &amp; cặp tiền tệ · {{ today }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 13px; border-radius:10px; background:#e7f6ec;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+            <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">Liên ngân hàng</span>
+          </div>
+        </div>
+
+        <div style="flex:1; margin-top:16px; display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:1fr; gap:14px; min-height:0;">
+          <sc-for list="{{ fx }}" as="f" hint-placeholder-count="8">
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:16px; padding:15px 16px; display:flex; flex-direction:column; justify-content:space-between; min-height:0;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <div style="font:700 15px/1 'IBM Plex Mono'; color:#0f1b17;">{{ f.pair }}</div>
+                  <div style="font:400 11px/1 'IBM Plex Sans'; color:#93a099; margin-top:4px;">{{ f.name }}</div>
+                </div>
+                <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ f.col }};">{{ f.arrow }} {{ f.pctStr }}</span>
+              </div>
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-top:10px;">
+                <span style="font:600 21px/1 'IBM Plex Mono'; color:#0f1b17; letter-spacing:-.01em;">{{ f.valStr }}</span>
+                <svg viewBox="0 0 100 30" width="62" height="26" preserveAspectRatio="none"><polyline points="{{ f.spark }}" fill="none" stroke="{{ f.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid #f4f6f2;">
+                <div style="flex:1;"><div style="font:400 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099;">Mua vào</div><div style="font:600 13px/1 'IBM Plex Mono'; color:#12a150; margin-top:5px;">{{ f.bidStr }}</div></div>
+                <div style="flex:1;"><div style="font:400 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099;">Bán ra</div><div style="font:600 13px/1 'IBM Plex Mono'; color:#e5484d; margin-top:5px;">{{ f.askStr }}</div></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="flex:0 0 auto; margin-top:14px; background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:14px 18px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <span style="display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec;"><span style="width:6px; height:6px; border-radius:50%; background:#e5484d; animation:pulseDot 1.4s ease-in-out infinite;"></span><span style="font:600 10px/1 'IBM Plex Sans'; color:#0e7a3c;">TRỰC TIẾP</span></span>
+            <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Tin ngoại hối</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;">
+            <sc-for list="{{ fxNews }}" as="n" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:6px; padding:11px 13px; border-radius:12px; background:#f8faf7; border:1px solid #eef1ec;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:{{ n.tagCol }}; background:{{ n.tagBg }}; padding:3px 6px; border-radius:5px;">{{ n.tag }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Mono'; color:#93a099;">{{ n.time }} · {{ n.source }}</span>
+                </div>
+                <div style="font:600 12.5px/1.35 'IBM Plex Sans'; color:#1c2a24; text-wrap:pretty;">{{ n.title }}</div>
+                <div style="font:400 11px/1.45 'IBM Plex Sans'; color:#6b7770; text-wrap:pretty;">{{ n.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+  </article>
+
+</section>
+
+<section id="turn1" style="min-height:100vh; background:#d3dacf; background-image:radial-gradient(circle at 1px 1px, rgba(15,27,23,.06) 1px, transparent 0); background-size:22px 22px; padding:56px 48px; display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start; font-family:'IBM Plex Sans',sans-serif;">
+
+  <!-- ============ OPTION 1A ============ -->
+  <article id="1a" style="position:relative; width:1440px; flex:0 0 auto;">
+    <div style="position:absolute; top:-40px; left:0; display:flex; align-items:baseline; gap:12px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 11px; border-radius:8px; background:#0f1b17; color:#fff; font:700 13px/1 'IBM Plex Mono',monospace; letter-spacing:.04em;">1A</span>
+      <span style="font:600 15px/1 'IBM Plex Sans'; color:#20302a;">Analyst Cockpit</span>
+      <span style="font:400 13px/1 'IBM Plex Sans'; color:#4a5a53;">— sidebar điều hướng, biểu đồ chủ đạo, watchlist &amp; tin bên phải</span>
+    </div>
+
+    <div style="width:1440px; height:920px; background:#f4f6f2; border-radius:22px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(15,27,23,.4); display:grid; grid-template-columns:78px 1fr; border:1px solid #e0e5dd;">
+      <!-- sidebar -->
+      <div style="background:#0f1b17; display:flex; flex-direction:column; align-items:center; padding:20px 0; gap:6px;">
+        <div style="width:40px; height:40px; border-radius:11px; background:{{ accent }}; display:flex; align-items:center; justify-content:center; color:#fff; font:700 18px/1 'IBM Plex Mono'; margin-bottom:22px;">Ʌ</div>
+        <sc-for list="{{ navA }}" as="n" hint-placeholder-count="6">
+          <div title="{{ n.label }}" style="width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px; color:{{ n.col }}; background:{{ n.bg }}; cursor:pointer;">{{ n.icon }}</div>
+        </sc-for>
+        <div style="flex:1;"></div>
+        <div style="width:34px; height:34px; border-radius:50%; background:#2b3a33; color:#9fb0a7; display:flex; align-items:center; justify-content:center; font:600 13px/1 'IBM Plex Sans';">PT</div>
+      </div>
+
+      <!-- main -->
+      <div style="display:flex; flex-direction:column; overflow:hidden;">
+        <!-- ticker marquee -->
+        <div style="height:38px; background:#0f1b17; overflow:hidden; display:flex; align-items:center; flex:0 0 auto;">
+          <div style="display:flex; width:200%; animation:tickerRun 38s linear infinite;">
+            <div style="display:flex; align-items:center;">
+              <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+                <div style="display:flex; align-items:center; gap:8px; padding:0 20px; border-right:1px solid #24332c;">
+                  <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf; letter-spacing:.03em;">{{ t.label }}</span>
+                  <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                  <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+                <div style="display:flex; align-items:center; gap:8px; padding:0 20px; border-right:1px solid #24332c;">
+                  <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf; letter-spacing:.03em;">{{ t.label }}</span>
+                  <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                  <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 28px 14px;">
+          <div>
+            <div style="font:700 22px/1.1 'IBM Plex Sans'; color:#0f1b17;">Tổng quan thị trường</div>
+            <div style="font:400 13px/1 'IBM Plex Sans'; color:#6b7770; margin-top:6px;">{{ today }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; background:#e7f6ec;">
+              <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+              <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">{{ marketLabel }}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 14px; border-radius:9px; background:#fff; border:1px solid #e0e5dd; color:#6b7770;">
+              <span style="font-size:14px;">⌕</span><span style="font:400 13px/1 'IBM Plex Sans';">Tìm mã, chỉ số…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- index cards row -->
+        <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:0 28px 16px;">
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:15px; padding:13px 14px; display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font:600 12px/1 'IBM Plex Sans'; color:#0f1b17;">{{ c.name }}</span>
+                <span style="font:500 10px/1 'IBM Plex Sans'; color:#93a099;">{{ c.sub }}</span>
+              </div>
+              <span style="font:600 20px/1 'IBM Plex Mono'; color:#0f1b17; letter-spacing:-.01em;">{{ c.valStr }}</span>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ c.col }};">{{ c.arrow }} {{ c.pctStr }}</span>
+                <svg viewBox="0 0 100 30" width="56" height="20" preserveAspectRatio="none"><polyline points="{{ c.spark }}" fill="none" stroke="{{ c.col }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- lower grid: chart+flow | watchlist+news -->
+        <div style="display:grid; grid-template-columns:1fr 430px; gap:16px; padding:0 28px 20px; flex:1; min-height:0;">
+          <!-- left col -->
+          <div style="display:flex; flex-direction:column; gap:16px; min-height:0;">
+            <!-- main chart -->
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:18px 20px; flex:1.4; display:flex; flex-direction:column; min-height:0;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <div style="font:700 15px/1 'IBM Plex Sans'; color:#0f1b17;">VN-Index · Diễn biến phiên</div>
+                  <div style="display:flex; align-items:baseline; gap:10px; margin-top:9px;">
+                    <span style="font:600 26px/1 'IBM Plex Mono'; color:#0f1b17;">{{ chart.lastStr }}</span>
+                    <span style="font:600 14px/1 'IBM Plex Mono'; color:{{ chart.col }};">{{ chart.arrow }} {{ chart.pctStr }}</span>
+                  </div>
+                </div>
+                <div style="display:flex; gap:4px; background:#f0f3ee; border-radius:9px; padding:3px;">
+                  <sc-for list="{{ tfs }}" as="tf" hint-placeholder-count="5">
+                    <span style="font:600 11px/1 'IBM Plex Sans'; color:{{ tf.col }}; background:{{ tf.bg }}; padding:6px 11px; border-radius:7px; cursor:pointer;">{{ tf.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="flex:1; margin-top:12px; position:relative; min-height:0;">
+                <svg viewBox="0 0 700 220" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">
+                  <line x1="0" y1="55" x2="700" y2="55" stroke="#eef1ec" stroke-width="1"/>
+                  <line x1="0" y1="110" x2="700" y2="110" stroke="#eef1ec" stroke-width="1"/>
+                  <line x1="0" y1="165" x2="700" y2="165" stroke="#eef1ec" stroke-width="1"/>
+                  <path d="{{ chart.area }}" fill="{{ chart.fill }}"/>
+                  <path d="{{ chart.line }}" fill="none" stroke="{{ chart.col }}" stroke-width="2.4" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <!-- money flow -->
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 20px; flex:1; display:flex; gap:24px; min-height:0;">
+              <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Dòng tiền chủ động</div>
+                <div style="display:flex; height:11px; border-radius:6px; overflow:hidden; margin-top:14px; background:#f0f3ee;">
+                  <div style="width:{{ flow.buyPct }}; background:#12a150;"></div>
+                  <div style="width:{{ flow.sellPct }}; background:#e5484d;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                  <div><div style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Mua chủ động</div><div style="font:600 15px/1 'IBM Plex Mono'; color:#12a150; margin-top:4px;">{{ flow.buyStr }}</div></div>
+                  <div style="text-align:right;"><div style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Bán chủ động</div><div style="font:600 15px/1 'IBM Plex Mono'; color:#e5484d; margin-top:4px;">{{ flow.sellStr }}</div></div>
+                </div>
+                <div style="margin-top:auto; padding-top:12px; border-top:1px solid #eef1ec; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Khối ngoại ròng</span>
+                  <span style="font:600 14px/1 'IBM Plex Mono'; color:{{ flow.foreignCol }};">{{ flow.foreignNetStr }}</span>
+                </div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Khối lượng theo giờ</div>
+                <div style="flex:1; display:flex; align-items:flex-end; gap:4px; margin-top:14px;">
+                  <sc-for list="{{ flow.bars }}" as="b" hint-placeholder-count="16">
+                    <div style="flex:1; height:{{ b.h }}; background:{{ b.col }}; border-radius:3px 3px 0 0;"></div>
+                  </sc-for>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:8px; font:400 10px/1 'IBM Plex Sans'; color:#93a099;"><span>09:00</span><span>11:30</span><span>15:00</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- right col -->
+          <div style="display:flex; flex-direction:column; gap:16px; min-height:0;">
+            <!-- movers table -->
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; flex:1.3; display:flex; flex-direction:column; min-height:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Biến động mạnh · HOSE</span>
+                <span style="font:500 11px/1 'IBM Plex Sans'; color:{{ accent }}; cursor:pointer;">Xem tất cả →</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr auto 78px 62px; gap:10px; margin-top:14px; padding-bottom:8px; border-bottom:1px solid #eef1ec; font:600 10px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099;">
+                <span>Mã</span><span></span><span style="text-align:right;">Giá</span><span style="text-align:right;">+/-</span>
+              </div>
+              <div style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                <sc-for list="{{ movers }}" as="m" hint-placeholder-count="8">
+                  <div style="display:grid; grid-template-columns:1fr auto 78px 62px; gap:10px; align-items:center; padding:8.5px 0; border-bottom:1px solid #f4f6f2;">
+                    <div style="display:flex; flex-direction:column; gap:2px;"><span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ m.sym }}</span><span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px;">{{ m.name }}</span></div>
+                    <svg viewBox="0 0 100 30" width="44" height="18" preserveAspectRatio="none"><polyline points="{{ m.spark }}" fill="none" stroke="{{ m.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+                    <span style="font:500 13px/1 'IBM Plex Mono'; color:#0f1b17; text-align:right;">{{ m.priceStr }}</span>
+                    <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ m.col }}; text-align:right;">{{ m.pctStr }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <!-- news -->
+            <div style="background:#fff; border:1px solid #e6eae4; border-radius:18px; padding:16px 18px; flex:1; display:flex; flex-direction:column; min-height:0;">
+              <span style="font:700 14px/1 'IBM Plex Sans'; color:#0f1b17;">Tin thị trường</span>
+              <div style="flex:1; overflow:hidden; margin-top:10px; display:flex; flex-direction:column;">
+                <sc-for list="{{ news }}" as="ns" hint-placeholder-count="4">
+                  <div style="padding:9px 0; border-bottom:1px solid #f4f6f2; display:flex; flex-direction:column; gap:5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:{{ ns.tagCol }}; background:{{ ns.tagBg }}; padding:3px 6px; border-radius:5px;">{{ ns.tag }}</span>
+                      <span style="font:400 10px/1 'IBM Plex Mono'; color:#93a099;">{{ ns.time }} · {{ ns.source }}</span>
+                    </div>
+                    <span style="font:500 12.5px/1.35 'IBM Plex Sans'; color:#243029;">{{ ns.title }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- ============ OPTION 1B ============ -->
+  <article id="1b" style="position:relative; width:1440px; flex:0 0 auto;">
+    <div style="position:absolute; top:-40px; left:0; display:flex; align-items:baseline; gap:12px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 11px; border-radius:8px; background:#0f1b17; color:#fff; font:700 13px/1 'IBM Plex Mono',monospace; letter-spacing:.04em;">1B</span>
+      <span style="font:600 15px/1 'IBM Plex Sans'; color:#20302a;">Bento Modern</span>
+      <span style="font:400 13px/1 'IBM Plex Sans'; color:#4a5a53;">— lưới ô bo tròn, thoáng, tile kích thước khác nhau</span>
+    </div>
+
+    <div style="width:1440px; height:920px; background:#eef1ec; border-radius:22px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(15,27,23,.4); border:1px solid #e0e5dd; display:flex; flex-direction:column;">
+      <!-- topbar -->
+      <div style="height:60px; background:#fff; border-bottom:1px solid #e6eae4; display:flex; align-items:center; padding:0 26px; gap:22px; flex:0 0 auto;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; border-radius:10px; background:{{ accent }}; display:flex; align-items:center; justify-content:center; color:#fff; font:700 16px/1 'IBM Plex Mono';">Ʌ</div>
+          <span style="font:700 17px/1 'IBM Plex Sans'; color:#0f1b17;">Thị trường</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <sc-for list="{{ tabsB }}" as="tb" hint-placeholder-count="5">
+            <span style="font:600 13px/1 'IBM Plex Sans'; color:{{ tb.col }}; background:{{ tb.bg }}; padding:8px 14px; border-radius:9px; cursor:pointer;">{{ tb.label }}</span>
+          </sc-for>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; background:#e7f6ec;">
+          <span style="width:8px; height:8px; border-radius:50%; background:#12a150;"></span>
+          <span style="font:600 12px/1 'IBM Plex Sans'; color:#0e7a3c;">{{ marketLabel }}</span>
+        </div>
+        <span style="font:500 12px/1 'IBM Plex Mono'; color:#6b7770;">{{ clock }}</span>
+      </div>
+
+      <!-- ticker -->
+      <div style="height:34px; background:#0f1b17; overflow:hidden; display:flex; align-items:center; flex:0 0 auto;">
+        <div style="display:flex; width:200%; animation:tickerRun 40s linear infinite;">
+          <div style="display:flex; align-items:center;">
+            <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+              <div style="display:flex; align-items:center; gap:7px; padding:0 18px; border-right:1px solid #24332c;">
+                <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf;">{{ t.label }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center;">
+            <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="14">
+              <div style="display:flex; align-items:center; gap:7px; padding:0 18px; border-right:1px solid #24332c;">
+                <span style="font:600 11px/1 'IBM Plex Sans'; color:#b9c6bf;">{{ t.label }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+                <span style="font:600 11px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.arrow }}{{ t.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- bento grid -->
+      <div style="flex:1; padding:20px 24px; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(6,1fr); gap:16px; min-height:0;">
+        <!-- hero index tile -->
+        <div style="grid-column:span 2; grid-row:span 3; background:#0f1b17; border-radius:20px; padding:22px 24px; color:#fff; display:flex; flex-direction:column; position:relative; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; z-index:1;">
+            <div>
+              <div style="font:600 13px/1 'IBM Plex Sans'; color:#8fa89d; letter-spacing:.03em;">CHỈ SỐ CHÍNH · HOSE</div>
+              <div style="font:700 22px/1 'IBM Plex Sans'; margin-top:10px;">VN-Index</div>
+              <div style="display:flex; align-items:baseline; gap:12px; margin-top:12px;">
+                <span style="font:600 40px/1 'IBM Plex Mono'; letter-spacing:-.02em;">{{ chart.lastStr }}</span>
+                <span style="font:600 17px/1 'IBM Plex Mono'; color:{{ chart.colLight }};">{{ chart.arrow }} {{ chart.pctStr }}</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:16px;">
+              <div style="text-align:right;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#8fa89d;">KL khớp</div><div style="font:600 14px/1 'IBM Plex Mono'; margin-top:5px;">{{ chart.volStr }}</div></div>
+              <div style="text-align:right;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#8fa89d;">GT</div><div style="font:600 14px/1 'IBM Plex Mono'; margin-top:5px;">{{ chart.gtStr }}</div></div>
+            </div>
+          </div>
+          <div style="flex:1; margin-top:8px; position:relative; min-height:0;">
+            <svg viewBox="0 0 700 200" width="100%" height="100%" preserveAspectRatio="none" style="display:block; position:absolute; inset:0;">
+              <path d="{{ chart.area }}" fill="rgba(255,255,255,.08)"/>
+              <path d="{{ chart.line }}" fill="none" stroke="{{ chart.colLight }}" stroke-width="2.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div style="display:flex; gap:20px; z-index:1;">
+            <sc-for list="{{ breadth }}" as="br" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; border-radius:2px; background:{{ br.col }};"></span><span style="font:500 12px/1 'IBM Plex Sans'; color:#c8d4cd;">{{ br.label }} <b style="font-family:'IBM Plex Mono';">{{ br.n }}</b></span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- crypto/commodity mini tiles -->
+        <sc-for list="{{ mini }}" as="mi" hint-placeholder-count="2">
+          <div style="grid-column:span 1; grid-row:span 1; background:#fff; border-radius:16px; padding:14px 15px; display:flex; flex-direction:column; justify-content:space-between; border:1px solid #e6eae4;">
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font:600 12px/1 'IBM Plex Sans'; color:#0f1b17;">{{ mi.name }}</span><span style="font:600 11px/1 'IBM Plex Mono'; color:{{ mi.col }};">{{ mi.arrow }}{{ mi.pctStr }}</span></div>
+            <span style="font:600 18px/1 'IBM Plex Mono'; color:#0f1b17;">{{ mi.valStr }}</span>
+            <svg viewBox="0 0 100 26" width="100%" height="20" preserveAspectRatio="none"><polyline points="{{ mi.spark }}" fill="none" stroke="{{ mi.col }}" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </div>
+        </sc-for>
+
+        <!-- gainers tile -->
+        <div style="grid-column:span 2; grid-row:span 2; background:#fff; border-radius:18px; padding:16px 18px; border:1px solid #e6eae4; display:flex; flex-direction:column; min-height:0;">
+          <span style="font:700 13px/1 'IBM Plex Sans'; color:#12a150;">▲ Tăng mạnh nhất</span>
+          <div style="flex:1; margin-top:10px; display:flex; flex-direction:column; overflow:hidden;">
+            <sc-for list="{{ gainers }}" as="g" hint-placeholder-count="5">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:6.5px 0; border-bottom:1px solid #f4f6f2;">
+                <span style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17; width:52px;">{{ g.sym }}</span>
+                <svg viewBox="0 0 100 26" width="50" height="16" preserveAspectRatio="none"><polyline points="{{ g.spark }}" fill="none" stroke="#12a150" stroke-width="2.6"/></svg>
+                <span style="font:500 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ g.priceStr }}</span>
+                <span style="font:600 12px/1 'IBM Plex Mono'; color:#12a150; width:56px; text-align:right;">{{ g.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- sector heatmap tile -->
+        <div style="grid-column:span 2; grid-row:span 3; background:#fff; border-radius:18px; padding:16px 18px; border:1px solid #e6eae4; display:flex; flex-direction:column; min-height:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font:700 13px/1 'IBM Plex Sans'; color:#0f1b17;">Heatmap ngành</span><span style="font:400 11px/1 'IBM Plex Sans'; color:#93a099;">% thay đổi</span></div>
+          <div style="flex:1; margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; min-height:0;">
+            <sc-for list="{{ sectors }}" as="s" hint-placeholder-count="12">
+              <div style="border-radius:11px; background:{{ s.bg }}; padding:10px 11px; display:flex; flex-direction:column; justify-content:space-between;">
+                <span style="font:600 12px/1.15 'IBM Plex Sans'; color:{{ s.txtCol }};">{{ s.name }}</span>
+                <span style="font:600 15px/1 'IBM Plex Mono'; color:{{ s.txtCol }};">{{ s.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- losers tile -->
+        <div style="grid-column:span 2; grid-row:span 1; background:#fff; border-radius:18px; padding:14px 18px; border:1px solid #e6eae4; display:flex; flex-direction:column; min-height:0;">
+          <span style="font:700 13px/1 'IBM Plex Sans'; color:#e5484d;">▼ Giảm mạnh nhất</span>
+          <div style="flex:1; display:flex; align-items:center; gap:10px; margin-top:6px; overflow:hidden;">
+            <sc-for list="{{ losers }}" as="l" hint-placeholder-count="5">
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px; padding:6px 9px; background:#fdeeef; border-radius:10px;">
+                <span style="font:600 12px/1 'IBM Plex Mono'; color:#0f1b17;">{{ l.sym }}</span>
+                <span style="font:600 12px/1 'IBM Plex Mono'; color:#e5484d;">{{ l.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- ============ OPTION 1C ============ -->
+  <article id="1c" style="position:relative; width:1440px; flex:0 0 auto;">
+    <div style="position:absolute; top:-40px; left:0; display:flex; align-items:baseline; gap:12px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 11px; border-radius:8px; background:#0f1b17; color:#fff; font:700 13px/1 'IBM Plex Mono',monospace; letter-spacing:.04em;">1C</span>
+      <span style="font:600 15px/1 'IBM Plex Sans'; color:#20302a;">Dense Terminal</span>
+      <span style="font:400 13px/1 'IBM Plex Sans'; color:#4a5a53;">— nhiều cột, bảng dày dữ liệu, cho pro/bàn giao dịch</span>
+    </div>
+
+    <div style="width:1440px; height:920px; background:#f4f6f2; border-radius:16px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(15,27,23,.4); border:1px solid #e0e5dd; display:flex; flex-direction:column;">
+      <!-- compact bar -->
+      <div style="height:44px; background:#0f1b17; display:flex; align-items:center; padding:0 18px; gap:18px; flex:0 0 auto;">
+        <span style="font:700 14px/1 'IBM Plex Mono'; color:#fff;">Ʌ TERMINAL</span>
+        <div style="display:flex; align-items:center;">
+          <sc-for list="{{ ticker }}" as="t" hint-placeholder-count="6">
+            <div style="display:flex; align-items:center; gap:6px; padding:0 12px; border-right:1px solid #24332c;">
+              <span style="font:600 10px/1 'IBM Plex Sans'; color:#8fa89d;">{{ t.label }}</span>
+              <span style="font:600 11px/1 'IBM Plex Mono'; color:#fff;">{{ t.valStr }}</span>
+              <span style="font:600 10px/1 'IBM Plex Mono'; color:{{ t.col }};">{{ t.pctStr }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:1;"></div>
+        <span style="font:500 11px/1 'IBM Plex Mono'; color:#8fa89d;">{{ clock }}</span>
+      </div>
+
+      <!-- 3-col body -->
+      <div style="flex:1; display:grid; grid-template-columns:300px 1fr 320px; min-height:0;">
+        <!-- left: indices list -->
+        <div style="border-right:1px solid #e0e5dd; display:flex; flex-direction:column; min-height:0; background:#fff;">
+          <div style="padding:11px 14px; border-bottom:1px solid #eef1ec; font:600 11px/1 'IBM Plex Sans'; letter-spacing:.06em; text-transform:uppercase; color:#6b7770;">Chỉ số &amp; thị trường</div>
+          <div style="flex:1; overflow:hidden;">
+            <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:1px solid #f4f6f2;">
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:600 13px/1 'IBM Plex Sans'; color:#0f1b17;">{{ c.name }}</span><span style="font:400 10px/1 'IBM Plex Sans'; color:#93a099;">{{ c.sub }}</span></div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <svg viewBox="0 0 100 30" width="42" height="18" preserveAspectRatio="none"><polyline points="{{ c.spark }}" fill="none" stroke="{{ c.col }}" stroke-width="2.6"/></svg>
+                  <div style="text-align:right; min-width:74px;"><div style="font:600 13px/1 'IBM Plex Mono'; color:#0f1b17;">{{ c.valStr }}</div><div style="font:600 11px/1 'IBM Plex Mono'; color:{{ c.col }}; margin-top:3px;">{{ c.pctStr }}</div></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- breadth footer -->
+          <div style="padding:12px 14px; border-top:1px solid #eef1ec; display:flex; flex-direction:column; gap:8px;">
+            <span style="font:600 10px/1 'IBM Plex Sans'; letter-spacing:.06em; text-transform:uppercase; color:#6b7770;">Độ rộng thị trường</span>
+            <div style="display:flex; height:9px; border-radius:5px; overflow:hidden;">
+              <div style="width:{{ breadthBar.upPct }}; background:#12a150;"></div>
+              <div style="width:{{ breadthBar.flatPct }}; background:#c9b23a;"></div>
+              <div style="width:{{ breadthBar.downPct }}; background:#e5484d;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font:600 11px/1 'IBM Plex Mono';"><span style="color:#12a150;">{{ breadthBar.up }} ↑</span><span style="color:#c9a91a;">{{ breadthBar.flat }} —</span><span style="color:#e5484d;">{{ breadthBar.down }} ↓</span></div>
+          </div>
+        </div>
+
+        <!-- center: chart + movers table -->
+        <div style="display:flex; flex-direction:column; min-height:0; border-right:1px solid #e0e5dd;">
+          <div style="padding:14px 20px; display:flex; flex-direction:column; flex:1; min-height:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:baseline; gap:12px;">
+                <span style="font:700 15px/1 'IBM Plex Sans'; color:#0f1b17;">VN-Index</span>
+                <span style="font:600 22px/1 'IBM Plex Mono'; color:#0f1b17;">{{ chart.lastStr }}</span>
+                <span style="font:600 13px/1 'IBM Plex Mono'; color:{{ chart.col }};">{{ chart.arrow }} {{ chart.pctStr }}</span>
+              </div>
+              <div style="display:flex; gap:3px; background:#eef1ec; border-radius:8px; padding:3px;">
+                <sc-for list="{{ tfs }}" as="tf" hint-placeholder-count="5">
+                  <span style="font:600 10px/1 'IBM Plex Sans'; color:{{ tf.col }}; background:{{ tf.bg }}; padding:5px 9px; border-radius:6px; cursor:pointer;">{{ tf.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1; margin-top:12px; position:relative; min-height:0;">
+              <svg viewBox="0 0 700 220" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">
+                <line x1="0" y1="55" x2="700" y2="55" stroke="#eef1ec" stroke-width="1"/>
+                <line x1="0" y1="110" x2="700" y2="110" stroke="#eef1ec" stroke-width="1"/>
+                <line x1="0" y1="165" x2="700" y2="165" stroke="#eef1ec" stroke-width="1"/>
+                <path d="{{ chart.area }}" fill="{{ chart.fill }}"/>
+                <path d="{{ chart.line }}" fill="none" stroke="{{ chart.col }}" stroke-width="2.2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <!-- movers dense table -->
+          <div style="border-top:1px solid #e0e5dd; background:#fff; flex:1; display:flex; flex-direction:column; min-height:0;">
+            <div style="display:grid; grid-template-columns:64px 1fr 84px 66px 84px; gap:8px; padding:9px 16px; border-bottom:1px solid #eef1ec; font:600 10px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:#93a099;">
+              <span>Mã</span><span>Tên</span><span style="text-align:right;">Giá</span><span style="text-align:right;">%</span><span style="text-align:right;">KL</span>
+            </div>
+            <div style="flex:1; overflow:hidden;">
+              <sc-for list="{{ movers }}" as="m" hint-placeholder-count="8">
+                <div style="display:grid; grid-template-columns:64px 1fr 84px 66px 84px; gap:8px; align-items:center; padding:8px 16px; border-bottom:1px solid #f4f6f2;">
+                  <span style="font:600 12px/1 'IBM Plex Mono'; color:#0f1b17;">{{ m.sym }}</span>
+                  <span style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</span>
+                  <span style="font:500 12px/1 'IBM Plex Mono'; color:#0f1b17; text-align:right;">{{ m.priceStr }}</span>
+                  <span style="font:600 12px/1 'IBM Plex Mono'; color:{{ m.col }}; text-align:right;">{{ m.pctStr }}</span>
+                  <span style="font:400 11px/1 'IBM Plex Mono'; color:#6b7770; text-align:right;">{{ m.volStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- right: flow + news -->
+        <div style="display:flex; flex-direction:column; min-height:0; background:#fff;">
+          <div style="padding:14px 16px; border-bottom:1px solid #eef1ec;">
+            <span style="font:600 11px/1 'IBM Plex Sans'; letter-spacing:.06em; text-transform:uppercase; color:#6b7770;">Dòng tiền</span>
+            <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:12px; background:#eef1ec;">
+              <div style="width:{{ flow.buyPct }}; background:#12a150;"></div><div style="width:{{ flow.sellPct }}; background:#e5484d;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:9px;">
+              <div><div style="font:400 10px/1 'IBM Plex Sans'; color:#6b7770;">Mua</div><div style="font:600 13px/1 'IBM Plex Mono'; color:#12a150; margin-top:3px;">{{ flow.buyStr }}</div></div>
+              <div style="text-align:right;"><div style="font:400 10px/1 'IBM Plex Sans'; color:#6b7770;">Bán</div><div style="font:600 13px/1 'IBM Plex Mono'; color:#e5484d; margin-top:3px;">{{ flow.sellStr }}</div></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:11px; padding-top:10px; border-top:1px solid #eef1ec;"><span style="font:400 11px/1 'IBM Plex Sans'; color:#6b7770;">Khối ngoại ròng</span><span style="font:600 13px/1 'IBM Plex Mono'; color:{{ flow.foreignCol }};">{{ flow.foreignNetStr }}</span></div>
+          </div>
+          <div style="padding:14px 16px 8px; font:600 11px/1 'IBM Plex Sans'; letter-spacing:.06em; text-transform:uppercase; color:#6b7770;">Tin mới nhất</div>
+          <div style="flex:1; overflow:hidden; padding:0 16px;">
+            <sc-for list="{{ news }}" as="ns" hint-placeholder-count="5">
+              <div style="padding:9px 0; border-bottom:1px solid #f4f6f2; display:flex; flex-direction:column; gap:5px;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font:600 9px/1 'IBM Plex Sans'; letter-spacing:.04em; text-transform:uppercase; color:{{ ns.tagCol }}; background:{{ ns.tagBg }}; padding:2.5px 5px; border-radius:4px;">{{ ns.tag }}</span>
+                  <span style="font:400 9.5px/1 'IBM Plex Mono'; color:#93a099;">{{ ns.time }}</span>
+                </div>
+                <span style="font:500 12px/1.35 'IBM Plex Sans'; color:#243029;">{{ ns.title }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;live&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Mô phỏng&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1500,&quot;min&quot;:600,&quot;max&quot;:3000,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Mô phỏng&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#d81e2c&quot;,&quot;options&quot;:[&quot;#d81e2c&quot;,&quot;#b3121f&quot;,&quot;#4338ca&quot;,&quot;#0e7490&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Thương hiệu&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.UP = '#12a150'; this.DN = '#e5484d'; this.UPL = '#5ee39a'; this.DNL = '#ff8a8f';
+    const raw = this.seed();
+    this.tickCount = 0; this.newsId = 100; this.poolIdx = 0;
+    this.newsPool = [
+      { tag: 'Cổ phiếu', source: 'CafeF', title: 'Cổ phiếu ngân hàng đồng loạt xanh, VCB dẫn dắt chỉ số cuối phiên', sub: 'Nhóm ngân hàng đóng góp hơn 4 điểm cho VN-Index trong 30 phút cuối phiên.' },
+      { tag: 'Vĩ mô', source: 'VnEconomy', title: 'Tỷ giá USD/VND hạ nhiệt sau động thái điều tiết của Ngân hàng Nhà nước', sub: 'Tỷ giá liên ngân hàng giảm 12 đồng, áp lực lên thị trường dịu bớt.' },
+      { tag: 'Crypto', source: 'Bloomberg', title: 'Dòng vốn ETF đẩy Bitcoin tiến sát vùng kháng cự 69.000 USD', sub: 'Khối lượng giao dịch tăng 18%, tâm lý thị trường chuyển sang hưng phấn.' },
+      { tag: 'Cổ phiếu', source: 'Đầu tư', title: 'SSI bứt phá hơn 3% nhờ kỳ vọng nâng hạng thị trường trong quý', sub: 'Nhóm chứng khoán dẫn dắt dòng tiền, thanh khoản cải thiện rõ rệt.' },
+      { tag: 'Toàn cầu', source: 'Reuters', title: 'Chứng khoán Mỹ nối dài đà tăng khi lợi suất trái phiếu hạ nhiệt', sub: 'S&P 500 và Nasdaq cùng lập đỉnh mới, cổ phiếu công nghệ dẫn đầu.' },
+      { tag: 'Hàng hóa', source: 'CNBC', title: 'Giá vàng thế giới đi ngang, giới đầu tư chờ số liệu lạm phát Mỹ', sub: 'Vàng giao ngay quanh 2.330 USD/oz, biên độ dao động thu hẹp.' },
+      { tag: 'Vĩ mô', source: 'Thời báo TC', title: 'Khối ngoại duy trì mua ròng, tâm lý thị trường cải thiện rõ rệt', sub: 'Phiên mua ròng thứ tư liên tiếp, tập trung vào bluechip vốn hóa lớn.' },
+      { tag: 'Cổ phiếu', source: 'VietStock', title: 'Nhóm bất động sản phân hóa mạnh, thanh khoản tập trung ở midcap', sub: 'VIC, VHM điều chỉnh trong khi nhóm midcap khu công nghiệp hút tiền.' },
+    ];
+    this.catNews = {
+      stocks: [
+        { time: '14:31', source: 'CafeF', tag: 'Cổ phiếu', title: 'VN-Index giữ sắc xanh, thanh khoản HOSE vượt 18.000 tỷ đồng', sub: 'Dòng tiền lan tỏa sang nhóm chứng khoán và thép về cuối phiên chiều.' },
+        { time: '14:05', source: 'VietStock', tag: 'Cổ phiếu', title: 'FPT và MWG kéo VN30, khối ngoại gom ròng phiên thứ tư liên tiếp', sub: 'Rổ VN30 có 18 mã tăng; FPT đóng góp lớn nhất vào chỉ số nhóm.' },
+        { time: '13:20', source: 'Đầu tư', tag: 'Cổ phiếu', title: 'SSI bứt phá hơn 3% nhờ kỳ vọng nâng hạng thị trường trong quý', sub: 'Thanh khoản nhóm chứng khoán tăng vọt, dẫn dắt tâm lý thị trường.' },
+        { time: '11:30', source: 'VnEconomy', tag: 'Vĩ mô', title: 'Nhóm bất động sản phân hóa, dòng tiền dịch chuyển sang midcap KCN', sub: 'VIC, VHM điều chỉnh trong khi KBC, IDC, SZC thu hút lực cầu.' },
+      ],
+      commodity: [
+        { time: '14:28', source: 'Bloomberg', tag: 'Crypto', title: 'Bitcoin tiến sát 69.000 USD khi dòng vốn ETF quay lại mạnh', sub: 'Các quỹ ETF giao ngay hút ròng gần 300 triệu USD phiên gần nhất.' },
+        { time: '13:45', source: 'Reuters', tag: 'Hàng hóa', title: 'Giá dầu WTI lùi về vùng 81 USD/thùng trước lo ngại nhu cầu', sub: 'OPEC+ giữ nguyên sản lượng; giới đầu tư theo dõi tồn kho Mỹ.' },
+        { time: '12:10', source: 'CNBC', tag: 'Hàng hóa', title: 'Vàng thế giới đi ngang quanh 2.330 USD/oz chờ số liệu CPI Mỹ', sub: 'Vàng SJC trong nước giữ mốc 92,4 triệu đồng/lượng, ít biến động.' },
+        { time: '10:35', source: 'CoinDesk', tag: 'Crypto', title: 'Ethereum vượt 3.500 USD, dòng tiền altcoin cải thiện rõ rệt', sub: 'Khối lượng giao dịch ETH tăng 15%, tâm lý thị trường tích cực hơn.' },
+      ],
+      fx: [
+        { time: '14:22', source: 'SBV', tag: 'Vĩ mô', title: 'Tỷ giá trung tâm giảm 12 đồng, áp lực USD/VND hạ nhiệt', sub: 'NHNN điều tiết linh hoạt; tỷ giá liên ngân hàng quanh 25.410 đồng.' },
+        { time: '13:15', source: 'Reuters', tag: 'Toàn cầu', title: 'Chỉ số DXY suy yếu khi lợi suất trái phiếu Mỹ hạ nhiệt', sub: 'EUR/USD phục hồi lên 1,086; JPY mạnh lên trước can thiệp tiềm năng.' },
+        { time: '11:50', source: 'Bloomberg', tag: 'Toàn cầu', title: 'Yên Nhật biến động mạnh, thị trường dõi theo động thái BoJ', sub: 'USD/JPY dao động quanh 161; giới đầu tư thận trọng với can thiệp.' },
+        { time: '09:40', source: 'VnEconomy', tag: 'Vĩ mô', title: 'Dự trữ ngoại hối ổn định, thanh khoản ngoại tệ dồi dào', sub: 'Cung ngoại tệ từ FDI và kiều hối hỗ trợ ổn định tỷ giá cuối năm.' },
+      ],
+    };
+    this.state = { raw, now: new Date('2026-07-06T14:32:07+07:00'), feed: raw.news.map((n, i) => ({ ...n, id: i, age: i + 2 })), activeTab: 0 };
+  }
+
+  setTab(i) { this.setState({ activeTab: i }); }
+
+  rnd(a, b) { return a + Math.random() * (b - a); }
+
+  seed() {
+    const mkHist = (base, n, vol, drift) => {
+      let v = base; const h = [];
+      for (let i = 0; i < n; i++) { v += v * (this.rnd(-vol, vol) + drift); h.push(v); }
+      h[h.length - 1] = base; return h;
+    };
+    const idx = [
+      { name: 'VN-Index', sub: 'HOSE', base: 1281.45, dec: 2, chg: 0.82 },
+      { name: 'VN30', sub: 'HOSE', base: 1342.10, dec: 2, chg: 0.64 },
+      { name: 'HNX-Index', sub: 'HNX', base: 241.32, dec: 2, chg: -0.35 },
+      { name: 'S&P 500', sub: 'US', base: 5487.03, dec: 2, chg: 0.21 },
+      { name: 'BTC/USD', sub: 'Crypto', base: 68420, dec: 0, chg: 2.14 },
+      { name: 'Vàng SJC', sub: 'triệu ₫', base: 92.40, dec: 2, chg: 0.45 },
+    ];
+    idx.forEach(d => { d.value = d.base; d.hist = mkHist(d.base, 24, 0.0025, d.chg > 0 ? 0.0006 : -0.0006); });
+
+    const ticker = [
+      { label: 'VN-INDEX', v: 1281.45, chg: 0.82, dec: 2 }, { label: 'VN30', v: 1342.10, chg: 0.64, dec: 2 },
+      { label: 'HNX', v: 241.32, chg: -0.35, dec: 2 }, { label: 'UPCOM', v: 92.15, chg: 0.18, dec: 2 },
+      { label: 'S&P500', v: 5487.03, chg: 0.21, dec: 2 }, { label: 'NASDAQ', v: 17862.2, chg: 0.44, dec: 1 },
+      { label: 'DJIA', v: 39118.9, chg: -0.12, dec: 1 }, { label: 'NIKKEI', v: 39583.1, chg: 0.71, dec: 1 },
+      { label: 'BTC', v: 68420, chg: 2.14, dec: 0 }, { label: 'ETH', v: 3548.6, chg: 1.32, dec: 1 },
+      { label: 'VÀNG SJC', v: 92.40, chg: 0.45, dec: 2 }, { label: 'DẦU WTI', v: 81.35, chg: -0.88, dec: 2 },
+      { label: 'USD/VND', v: 25412, chg: 0.06, dec: 0 }, { label: 'EUR/USD', v: 1.0862, chg: -0.09, dec: 4 },
+    ];
+
+    const secDefs = [
+      ['Ngân hàng', 1.24], ['Bất động sản', -0.68], ['Chứng khoán', 2.05], ['Thép', 1.62],
+      ['Dầu khí', -1.15], ['Công nghệ', 0.94], ['Bán lẻ', 0.42], ['Điện & nước', -0.31],
+      ['Thực phẩm', 0.58], ['Dệt may', -0.92], ['Xây dựng', 1.08], ['Vận tải', -0.24],
+    ];
+    const sectors = secDefs.map(s => ({ name: s[0], chg: s[1] }));
+
+    const stkDefs = [
+      ['VCB', 'Vietcombank', 92.5, 1.42], ['FPT', 'FPT Corp', 138.2, 3.18], ['HPG', 'Hòa Phát', 28.65, 2.44],
+      ['VIC', 'Vingroup', 42.10, -1.86], ['VHM', 'Vinhomes', 39.75, -2.31], ['MWG', 'Thế Giới Di Động', 64.30, 4.02],
+      ['MSN', 'Masan Group', 78.90, -1.55], ['GAS', 'PV Gas', 74.20, -2.68], ['VNM', 'Vinamilk', 66.40, 0.76],
+      ['TCB', 'Techcombank', 24.85, 1.98], ['SSI', 'SSI Securities', 33.15, 3.65], ['MBB', 'MB Bank', 23.40, -1.22],
+    ];
+    const stocks = stkDefs.map(s => ({ sym: s[0], name: s[1], base: s[2], value: s[2], chg: s[3], vol: this.rnd(6, 42), hist: mkHist(s[2], 20, 0.004, s[3] > 0 ? 0.0012 : -0.0012) }));
+
+    const news = [
+      { time: '14:28', source: 'CafeF', tag: 'Vĩ mô', title: 'Khối ngoại mua ròng phiên thứ 3 liên tiếp, tập trung nhóm ngân hàng và chứng khoán', sub: 'Giá trị mua ròng hơn 620 tỷ đồng, VCB và SSI dẫn đầu danh mục giải ngân.' },
+      { time: '13:55', source: 'VnEconomy', tag: 'Cổ phiếu', title: 'FPT lập đỉnh lịch sử mới sau tin ký hợp đồng chuyển đổi số quy mô lớn', sub: 'Cổ phiếu tăng hơn 3%, thanh khoản gấp đôi bình quân 20 phiên gần nhất.' },
+      { time: '13:10', source: 'Reuters', tag: 'Toàn cầu', title: 'Fed phát tín hiệu giữ nguyên lãi suất, chứng khoán châu Á đồng loạt tăng', sub: 'Nikkei và Kospi tăng hơn 0,7%; giới đầu tư chờ số liệu CPI Mỹ tối nay.' },
+      { time: '11:42', source: 'Bloomberg', tag: 'Crypto', title: 'Bitcoin vượt 68.000 USD khi dòng tiền ETF quay lại thị trường', sub: 'Các quỹ ETF giao ngay hút ròng gần 300 triệu USD trong phiên gần nhất.' },
+      { time: '10:20', source: 'Đầu tư', tag: 'Hàng hóa', title: 'Giá dầu điều chỉnh giảm trước lo ngại nhu cầu, vàng trong nước đi ngang', sub: 'WTI lùi về 81 USD/thùng; vàng SJC giữ mốc 92,4 triệu đồng/lượng.' },
+    ];
+
+    const commDefs = [
+      ['Vàng SJC', '₫/lượng', 92.40, 2, 0.45], ['Vàng thế giới', 'USD/oz', 2332.5, 1, 0.28],
+      ['Dầu WTI', 'USD/thùng', 81.35, 2, -0.88], ['Dầu Brent', 'USD/thùng', 85.10, 2, -0.64],
+      ['Khí gas', 'USD/MMBtu', 2.48, 3, 1.35], ['Bạc', 'USD/oz', 29.85, 2, 0.92],
+      ['Đồng', 'USD/lb', 4.42, 3, -0.41], ['Cà phê', 'USD/tấn', 3820, 0, 1.68],
+    ];
+    const commod = commDefs.map(c => ({ name: c[0], unit: c[1], base: c[2], dec: c[3], value: c[2], chg: c[4], hist: mkHist(c[2], 22, 0.003, c[4] > 0 ? 0.0008 : -0.0008) }));
+
+    const cryDefs = [
+      ['BTC', 'Bitcoin', 68420, 0, 2.14], ['ETH', 'Ethereum', 3548.6, 1, 1.32],
+      ['BNB', 'BNB', 592.4, 1, -0.85], ['SOL', 'Solana', 168.9, 2, 4.62],
+      ['XRP', 'Ripple', 0.4832, 4, -1.24], ['ADA', 'Cardano', 0.3915, 4, 0.76],
+      ['DOGE', 'Dogecoin', 0.1284, 4, 3.18], ['AVAX', 'Avalanche', 28.44, 2, -2.05],
+    ];
+    const crypto = cryDefs.map(c => ({ sym: c[0], name: c[1], base: c[2], dec: c[3], value: c[2], chg: c[4], cap: this.rnd(8, 1340), vol: this.rnd(0.4, 42), hist: mkHist(c[2], 22, 0.005, c[4] > 0 ? 0.0014 : -0.0014) }));
+
+    const fxDefs = [
+      ['USD/VND', 'Đô la Mỹ', 25412, 0, 0.06], ['EUR/USD', 'Euro', 1.0862, 4, -0.09],
+      ['USD/JPY', 'Yên Nhật', 161.28, 2, 0.34], ['GBP/USD', 'Bảng Anh', 1.2785, 4, 0.12],
+      ['USD/CNY', 'Nhân dân tệ', 7.2710, 4, -0.05], ['AUD/USD', 'Đô la Úc', 0.6712, 4, 0.21],
+      ['EUR/VND', 'Euro/VND', 27603, 0, -0.03], ['USD/CHF', 'Franc Thụy Sĩ', 0.8975, 4, -0.14],
+    ];
+    const fx = fxDefs.map(c => ({ pair: c[0], name: c[1], base: c[2], dec: c[3], value: c[2], chg: c[4], bid: c[2], ask: c[2], hist: mkHist(c[2], 22, 0.0012, c[4] > 0 ? 0.0004 : -0.0004) }));
+
+    return { idx, ticker, sectors, stocks, news, commod, crypto, fx, chartHist: mkHist(1281.45, 60, 0.0015, 0.0004) };
+  }
+
+  componentDidMount() { this.start(); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  componentDidUpdate(prev) {
+    if (prev.speed !== this.props.speed || prev.live !== this.props.live) { clearInterval(this.iv); this.start(); }
+  }
+  start() {
+    if (this.props.live === false) return;
+    const ms = this.props.speed || 1500;
+    this.iv = setInterval(() => this.tick(), ms);
+  }
+
+  tick() {
+    const raw = this.state.raw;
+    const step = (o, vol, histLen) => {
+      const dc = this.rnd(-0.14, 0.14);
+      o.chg = Math.max(-6.8, Math.min(6.8, o.chg + dc));
+      o.value = o.base * (1 + o.chg / 100);
+      o.hist.push(o.value); if (o.hist.length > histLen) o.hist.shift();
+    };
+    raw.idx.forEach(o => step(o, 0.1, 24));
+    raw.stocks.forEach(o => { step(o, 0.1, 20); o.vol = Math.max(3, o.vol + this.rnd(-1.2, 1.2)); });
+    raw.ticker.forEach(o => { o.chg = Math.max(-6, Math.min(6, o.chg + this.rnd(-0.1, 0.1))); o.v = o.v * (1 + this.rnd(-0.0008, 0.0008)); });
+    raw.sectors.forEach(o => { o.chg = Math.max(-3.5, Math.min(3.5, o.chg + this.rnd(-0.1, 0.1))); });
+    raw.commod.forEach(o => step(o, 0.1, 22));
+    raw.crypto.forEach(o => { step(o, 0.1, 22); o.vol = Math.max(0.2, o.vol + this.rnd(-0.8, 0.8)); });
+    raw.fx.forEach(o => { step(o, 0.1, 22); o.bid = o.value * 0.9998; o.ask = o.value * 1.0002; });
+    const last = raw.chartHist[raw.chartHist.length - 1];
+    const nv = last * (1 + this.rnd(-0.0009, 0.001));
+    raw.chartHist.push(nv); if (raw.chartHist.length > 60) raw.chartHist.shift();
+    const now = new Date(this.state.now.getTime() + (this.props.speed || 1500));
+    this.tickCount++;
+    let feed = this.state.feed.map(f => ({ ...f, age: f.age + 1 }));
+    if (this.tickCount % 3 === 0) {
+      const src = this.newsPool[this.poolIdx % this.newsPool.length]; this.poolIdx++;
+      const p2 = n => String(n).padStart(2, '0');
+      const tm = p2(now.getHours()) + ':' + p2(now.getMinutes());
+      feed = [{ ...src, id: this.newsId++, age: 0, time: tm }, ...feed].slice(0, 8);
+    }
+    this.setState({ raw: { ...raw }, now, feed });
+  }
+
+  fmt(n, dec) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+  col(c) { return c >= 0 ? this.UP : this.DN; }
+  colL(c) { return c >= 0 ? this.UPL : this.DNL; }
+  arr(c) { return c >= 0 ? '▲' : '▼'; }
+  pct(c) { return (c >= 0 ? '+' : '') + c.toFixed(2) + '%'; }
+  hexA(h, a) { const n = parseInt(h.slice(1), 16); return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+
+  sparkPts(hist, w, h) {
+    const n = hist.length, mn = Math.min(...hist), mx = Math.max(...hist), r = (mx - mn) || 1;
+    return hist.map((v, i) => (i / (n - 1) * w).toFixed(1) + ',' + (h - 3 - (v - mn) / r * (h - 6)).toFixed(1)).join(' ');
+  }
+  chartPaths(hist, w, h) {
+    const n = hist.length, mn = Math.min(...hist), mx = Math.max(...hist), r = (mx - mn) || 1;
+    const pt = (v, i) => [(i / (n - 1) * w), (h - 6 - (v - mn) / r * (h - 20))];
+    let line = '', area = '';
+    hist.forEach((v, i) => { const [x, y] = pt(v, i); line += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; });
+    area = line + 'L' + w + ' ' + h + ' L0 ' + h + ' Z';
+    return { line: line.trim(), area };
+  }
+
+  renderVals() {
+    const r = this.state.raw;
+    const accent = this.props.accent || '#d81e2c';
+    const d = this.state.now;
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const p2 = n => String(n).padStart(2, '0');
+    const clock = p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+    const today = days[d.getDay()] + ', ' + p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + clock + ' (GMT+7)';
+
+    const cards = r.idx.map(o => ({
+      name: o.name, sub: o.sub, valStr: this.fmt(o.value, o.dec), pctStr: this.pct(o.chg),
+      col: this.col(o.chg), arrow: this.arr(o.chg), spark: this.sparkPts(o.hist, 100, 30),
+    }));
+
+    const ticker = r.ticker.map(o => ({
+      label: o.label, valStr: this.fmt(o.v, o.dec), pctStr: this.pct(o.chg), col: this.col(o.chg), arrow: this.arr(o.chg),
+    }));
+
+    const cp = this.chartPaths(r.chartHist, 700, 220);
+    const last = r.chartHist[r.chartHist.length - 1];
+    const chartChg = (last / r.chartHist[0] - 1) * 100;
+    const chart = {
+      lastStr: this.fmt(last, 2), pctStr: this.pct(chartChg), col: this.col(chartChg), colLight: this.colL(chartChg),
+      arrow: this.arr(chartChg), line: cp.line, area: cp.area, fill: chartChg >= 0 ? 'rgba(18,161,80,.09)' : 'rgba(229,72,77,.09)',
+      volStr: '412,6M', gtStr: '9.847 tỷ',
+    };
+    const cp2 = this.chartPaths(r.chartHist, 700, 200);
+    chart.area = cp.area; chart.line = cp.line; // 220 for main; bento uses same paths ok
+
+    const sectors = r.sectors.map(o => {
+      const t = Math.max(-3, Math.min(3, o.chg)) / 3;
+      const bg = t >= 0 ? 'rgba(18,161,80,' + (0.1 + 0.62 * t).toFixed(2) + ')' : 'rgba(229,72,77,' + (0.1 + 0.62 * (-t)).toFixed(2) + ')';
+      const txtCol = Math.abs(t) > 0.5 ? '#ffffff' : '#0f1b17';
+      return { name: o.name, pctStr: this.pct(o.chg), col: this.col(o.chg), bg, txtCol };
+    });
+
+    const disp = o => ({
+      sym: o.sym, name: o.name, priceStr: this.fmt(o.value, 2), pctStr: this.pct(o.chg), col: this.col(o.chg),
+      arrow: this.arr(o.chg), volStr: o.vol.toFixed(1) + 'M', spark: this.sparkPts(o.hist, 100, 30),
+    });
+    const sorted = [...r.stocks].sort((a, b) => b.chg - a.chg);
+    const gainers = sorted.slice(0, 5).map(disp);
+    const losers = [...sorted].reverse().slice(0, 5).map(disp);
+    const movers = [...r.stocks].sort((a, b) => Math.abs(b.chg) - Math.abs(a.chg)).map(disp);
+
+    const buy = 5240 + this.rnd(-40, 40), sell = 4610 + this.rnd(-40, 40), tot = buy + sell;
+    const fnet = buy - sell - 3860;
+    const flow = {
+      buyStr: this.fmt(buy, 0) + ' tỷ', sellStr: this.fmt(sell, 0) + ' tỷ',
+      buyPct: (buy / tot * 100).toFixed(1) + '%', sellPct: (sell / tot * 100).toFixed(1) + '%',
+      foreignNetStr: (fnet >= 0 ? '+' : '') + this.fmt(fnet, 0) + ' tỷ', foreignCol: this.col(fnet),
+      bars: Array.from({ length: 18 }, () => { const up = Math.random() > 0.42; return { h: (25 + Math.random() * 70).toFixed(0) + '%', col: up ? 'rgba(18,161,80,.55)' : 'rgba(229,72,77,.5)' }; }),
+    };
+
+    const liqVal = 18420 + this.rnd(-260, 260);
+    const liqAvg = 15870;
+    const liqDelta = (liqVal / liqAvg - 1) * 100;
+    const liquidity = {
+      totalStr: this.fmt(liqVal, 0) + ' tỷ',
+      volStr: (412.6 + this.rnd(-6, 6)).toFixed(1) + ' triệu CP',
+      avgStr: this.fmt(liqAvg, 0) + ' tỷ',
+      deltaStr: (liqDelta >= 0 ? '+' : '') + liqDelta.toFixed(1) + '% so với TB 20 phiên',
+      deltaCol: this.col(liqDelta),
+      hoseStr: this.fmt(liqVal * 0.82, 0) + ' tỷ', hosePct: '82%',
+      hnxStr: this.fmt(liqVal * 0.12, 0) + ' tỷ', hnxPct: '12%',
+      upcomStr: this.fmt(liqVal * 0.06, 0) + ' tỷ', upcomPct: '6%',
+      bars: Array.from({ length: 16 }, (_, i) => ({ h: (30 + 55 * Math.sin(i / 3) * Math.sin(i / 3) + this.rnd(0, 14)).toFixed(0) + '%' })),
+    };
+
+    const tagMap = { 'Vĩ mô': ['#7c3aed', '#f1ebfd'], 'Cổ phiếu': [accent, '#e6f2f0'], 'Toàn cầu': ['#0e7490', '#e2f4f7'], 'Crypto': ['#b45309', '#fbf0df'], 'Hàng hóa': ['#be123c', '#fdeaef'] };
+    const news = r.news.map(o => { const t = tagMap[o.tag] || [accent, '#e6f2f0']; return { time: o.time, source: o.source, tag: o.tag, title: o.title, tagCol: t[0], tagBg: t[1] }; });
+
+    const feed = this.state.feed.map(o => {
+      const t = tagMap[o.tag] || [accent, '#e6f2f0']; const isNew = o.age < 3;
+      return {
+        time: o.time, source: o.source, tag: o.tag, title: o.title, sub: o.sub, tagCol: t[0], tagBg: t[1],
+        newBg: isNew ? this.hexA(accent, 0.06) : '#ffffff', newBorder: isNew ? accent : 'transparent',
+        newDisp: isNew ? 'inline-flex' : 'none',
+      };
+    });
+
+    const alerts = [];
+    const sevMap = { 'KHẨN': [this.DN, '#fdeaef', 3], 'CHÚ Ý': ['#b45309', '#fbf0df', 2], 'TIN': [accent, this.hexA(accent, 0.1), 1] };
+    const mkAlert = (sev, icon, iconCol, title, detail) => { const s = sevMap[sev]; return { sev, sevCol: s[0], sevBg: s[1], rank: s[2], icon, iconCol, title, detail, time: clock }; };
+    r.stocks.forEach(s => { const a = Math.abs(s.chg); if (a >= 3.2) { const up = s.chg > 0; alerts.push(mkAlert(a >= 4.5 ? 'KHẨN' : 'CHÚ Ý', up ? '▲' : '▼', up ? this.UP : this.DN, s.sym + (up ? ' tăng ' : ' giảm ') + this.pct(s.chg), s.name + ' · giá ' + this.fmt(s.value, 2))); } });
+    if (Math.abs(fnet) > 500) alerts.push(mkAlert(Math.abs(fnet) > 2000 ? 'KHẨN' : 'TIN', '⚡', this.col(fnet), 'Khối ngoại ' + (fnet >= 0 ? 'mua' : 'bán') + ' ròng mạnh', (fnet >= 0 ? '+' : '') + this.fmt(fnet, 0) + ' tỷ toàn thị trường'));
+    r.sectors.forEach(sec => { if (Math.abs(sec.chg) >= 2.2) alerts.push(mkAlert('CHÚ Ý', '◉', this.col(sec.chg), 'Ngành ' + sec.name + (sec.chg > 0 ? ' bứt phá' : ' lao dốc'), 'Chỉ số ngành ' + this.pct(sec.chg))); });
+    alerts.sort((a, b) => b.rank - a.rank);
+    const alertCount = alerts.length;
+    const alertsTop = alerts.slice(0, 6);
+
+    const impC = { 'Cao': this.DN, 'TB': '#b45309', 'Thấp': '#7d8f86' };
+    const impL = { 'Cao': 'Cao', 'TB': 'Trung bình', 'Thấp': 'Thấp' };
+    const weekRaw = [
+      { day: 'Thứ Hai', date: '06/07', today: true, events: [{ time: '08:30', title: 'PMI Sản xuất Việt Nam · T6', imp: 'TB' }, { time: '15:00', title: 'Dự trữ ngoại hối', imp: 'Thấp' }] },
+      { day: 'Thứ Ba', date: '07/07', today: false, events: [{ time: '19:30', title: 'CPI Mỹ · tháng 6', imp: 'Cao' }, { time: '10:00', title: 'Đấu giá TPCP kỳ hạn 10 năm', imp: 'Thấp' }] },
+      { day: 'Thứ Tư', date: '08/07', today: false, events: [{ time: '01:00', title: 'Biên bản họp Fed (FOMC)', imp: 'Cao' }, { time: '08:30', title: 'CPI Trung Quốc', imp: 'TB' }] },
+      { day: 'Thứ Năm', date: '09/07', today: false, events: [{ time: '09:00', title: 'GDP Việt Nam Q2 (ước tính)', imp: 'Cao' }, { time: '19:30', title: 'Đơn trợ cấp thất nghiệp Mỹ', imp: 'TB' }] },
+      { day: 'Thứ Sáu', date: '10/07', today: false, events: [{ time: 'Cả ngày', title: 'KQKD Q2: VCB, FPT, HPG', imp: 'TB' }, { time: '16:00', title: 'Cán cân thương mại Việt Nam', imp: 'TB' }] },
+    ];
+    const week = weekRaw.map(d => ({
+      day: d.day, date: d.date,
+      headBg: d.today ? accent : '#f4f6f2', headCol: d.today ? '#ffffff' : '#0f1b17',
+      dateCol: d.today ? 'rgba(255,255,255,.82)' : '#93a099',
+      events: d.events.map(e => ({ time: e.time, title: e.title, dotCol: impC[e.imp], impLabel: impL[e.imp] })),
+    }));
+
+    const nav = ['◧', '◔', '≣', '⬡', '⚑', '⚙'];
+    const navLabels = ['Tổng quan', 'Biểu đồ', 'Danh mục', 'Ngành', 'Cảnh báo', 'Cài đặt'];
+    const navA = nav.map((ic, i) => ({ icon: ic, label: navLabels[i], col: i === 0 ? '#fff' : '#7d8f86', bg: i === 0 ? accent : 'transparent' }));
+
+    const tfLabels = ['1P', '1N', '1T', '1Th', '1Nă'];
+    const tfs = tfLabels.map((l, i) => ({ label: l, col: i === 1 ? '#fff' : '#6b7770', bg: i === 1 ? '#0f1b17' : 'transparent' }));
+
+    const tabLabels = ['Tổng quan', 'Cổ phiếu Việt Nam', 'Giá vàng, dầu, crypto', 'FX'];
+    const at = this.state.activeTab;
+    const tabsB = tabLabels.map((l, i) => ({ label: l, col: i === at ? '#fff' : '#4a5a53', bg: i === at ? accent : '#f0f3ee', onClick: () => this.setTab(i) }));
+    const showOverview = at === 0, showStocks = at === 1, showCommodity = at === 2, showFx = at === 3;
+
+    const mapCat = arr => arr.map(o => { const t = tagMap[o.tag] || [accent, '#e6f2f0']; return { time: o.time, source: o.source, tag: o.tag, title: o.title, sub: o.sub, tagCol: t[0], tagBg: t[1] }; });
+    const stockNews = mapCat(this.catNews.stocks);
+    const commodNews = mapCat(this.catNews.commodity);
+    const fxNews = mapCat(this.catNews.fx);
+
+    const commod = r.commod.map(o => ({
+      name: o.name, unit: o.unit, valStr: this.fmt(o.value, o.dec), pctStr: this.pct(o.chg),
+      col: this.col(o.chg), arrow: this.arr(o.chg), spark: this.sparkPts(o.hist, 100, 30),
+      fill: o.chg >= 0 ? 'rgba(18,161,80,.09)' : 'rgba(229,72,77,.09)',
+    }));
+    const crypto = r.crypto.map(o => ({
+      sym: o.sym, name: o.name, valStr: '$' + this.fmt(o.value, o.dec), pctStr: this.pct(o.chg),
+      col: this.col(o.chg), arrow: this.arr(o.chg), spark: this.sparkPts(o.hist, 100, 30),
+      capStr: o.cap >= 1000 ? (o.cap / 1000).toFixed(2) + ' N.tỷ' : o.cap.toFixed(1) + ' tỷ',
+      volStr: '$' + o.vol.toFixed(1) + ' tỷ',
+    }));
+    const fx = r.fx.map(o => ({
+      pair: o.pair, name: o.name, valStr: this.fmt(o.value, o.dec), pctStr: this.pct(o.chg),
+      col: this.col(o.chg), arrow: this.arr(o.chg), spark: this.sparkPts(o.hist, 100, 30),
+      bidStr: this.fmt(o.bid, o.dec), askStr: this.fmt(o.ask, o.dec),
+    }));
+    const cryHero = crypto[0];
+    const cryHist = this.chartPaths(r.crypto[0].hist, 700, 180);
+
+    const upN = r.stocks.filter(s => s.chg > 0).length, dnN = r.stocks.filter(s => s.chg < 0).length;
+    const breadth = [
+      { label: 'Tăng', n: 218 + upN, col: this.UP }, { label: 'Đứng giá', n: 46, col: '#c9a91a' }, { label: 'Giảm', n: 142 + dnN, col: this.DN },
+    ];
+    const bu = 218 + upN, bf = 46, bd = 142 + dnN, bt = bu + bf + bd;
+    const breadthBar = { up: bu, flat: bf, down: bd, upPct: (bu / bt * 100).toFixed(1) + '%', flatPct: (bf / bt * 100).toFixed(1) + '%', downPct: (bd / bt * 100).toFixed(1) + '%' };
+
+    const mini = [r.idx[4], r.idx[5]].map(o => ({
+      name: o.name, valStr: this.fmt(o.value, o.dec), pctStr: this.pct(o.chg), col: this.col(o.chg), arrow: this.arr(o.chg), spark: this.sparkPts(o.hist, 100, 26),
+    }));
+
+    return {
+      accent, today, clock, marketLabel: 'Đang giao dịch',
+      ticker, cards, chart, sectors, gainers, losers, movers, flow, news,
+      navA, tfs, tabsB, breadth, breadthBar, mini,
+      feed, alerts: alertsTop, alertCount, week, liquidity,
+      showOverview, showStocks, showCommodity, showFx,
+      commod, crypto, fx, cryHero, cryLine: cryHist.line, cryArea: cryHist.area,
+      stockNews, commodNews, fxNews,
+    };
+  }
+}
+</script>
+</body>
+</html>
