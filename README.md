@@ -52,12 +52,48 @@ cài thư viện và khởi động server.
 
 Sau khi chạy (cách nào cũng được), mở trình duyệt: **http://localhost:8000**
 
-- **Giao diện duy nhất: trang chủ `/`** — "Trung tâm tin tức & cảnh báo" (theo design handoff 2A), trải kín màn hình: toolbar + ticker chạy ngang, 6 thẻ chỉ số, **4 vùng tin theo nhóm** (📈 Chứng khoán · 🛢️ Vàng & Dầu · 🪙 Crypto · 💱 Tỷ giá — mỗi vùng 5 tin tiếng Việt mới nhất, đếm tin đã xác nhận / ảnh hưởng cao), hàng Tăng · Giảm mạnh nhất (kèm sparkline) · Cảnh báo · Bản đồ nhiệt, chỉ số Dovish/Hawkish. Tự xếp 2 cột trên máy tính bảng, 1 cột trên điện thoại. Nút **⛶** để vào chế độ toàn màn hình.
+- **Giao diện duy nhất: trang chủ `/`** — "Trung tâm tin tức & cảnh báo" theo thiết kế màn 2A
+  (`docs/design/`), trải kín màn hình, **4 tab** (nhớ tab đang xem; đường dẫn `#tong-quan`,
+  `#co-phieu`, `#hang-hoa`, `#fx`):
+  - **Tổng quan** — 6 thẻ (VN-Index, VN30, HNX-Index, S&P 500, BTC, Vàng SJC), **tin tức theo
+    4 lĩnh vực** (Chứng khoán thế giới · Vàng & Dầu · Tiền mã hoá · CK Việt Nam — mỗi nhóm 3 tin mới
+    nhất kèm nhãn Dovish/Hawkish của nhóm, nút **"Xem thêm"** mở trang tin riêng của lĩnh vực),
+    Tăng/Giảm mạnh nhất (Thế giới · VN30 · HNX30, nút xem bảng xếp hạng đầy đủ), cảnh báo quan
+    trọng, heatmap 12 chỉ số ngành HOSE, lịch sự kiện kinh tế trong tuần.
+  - **Trang tin theo lĩnh vực** (`#tin-the-gioi`, `#tin-hang-hoa`, `#tin-crypto`, `#tin-viet-nam`) —
+    toàn bộ tin của lĩnh vực (tối đa `NEWS_MAX_PER_CLASS` = 20), mỗi tin có mức ảnh hưởng, số nguồn
+    xác nhận, giọng điệu Dovish/Hawkish (kèm từ khoá tín hiệu, có xử lý phủ định như "rate hike
+    odds fall") và tác động ước tính tới 6 nhóm thị trường (CK thế giới, CK Việt Nam, Vàng, Dầu,
+    Crypto, USD/tỷ giá). Cột phải: chỉ số Dovish/Hawkish của lĩnh vực + bảng tác động tới từng
+    nhóm thị trường (điểm nghiêng co lại khi ít tin mang tín hiệu). Nút Quay lại của trình duyệt
+    đưa về Tổng quan.
+  - **Cổ phiếu Việt Nam** — bảng giá 14 mã HOSE thanh khoản lớn nhất ("Xem tất cả" = toàn sàn),
+    độ rộng thị trường, thanh khoản phiên so với TB20, dòng tiền chủ động, khối ngoại ròng, tin VN.
+  - **Giá vàng, dầu, crypto** — Bitcoin (biểu đồ 24h, vốn hoá), 8 đồng tiền mã hoá, vàng SJC /
+    thế giới, dầu WTI / Brent, bạc, đồng, khí tự nhiên, cà phê.
+  - **FX** — 8 cặp tiền kèm giá mua/bán Vietcombank, chỉ số Dovish/Hawkish, tin ngoại hối.
+  - **Đánh giá lệnh** (`#lenh`) — nhập lệnh (cổ phiếu VN, vàng SJC/thế giới, bạc, dầu, khí, đồng,
+    cà phê, crypto; Mua/Bán, giá vào, cắt lỗ, chốt lời, khối lượng) → **điểm rủi ro 0–100** từ 8 yếu tố
+    cơ bản: xu hướng thị trường chung, chính sách tiền tệ (Dovish/Hawkish), tin tức liên quan tới mã,
+    sự kiện kinh tế 48 giờ tới, biến động & đuổi giá/sát trần sàn, thanh khoản, khối ngoại trên mã,
+    độ tin cậy dữ liệu; cộng **kiểm tra quản lý vốn** (có cắt lỗ, R:R, % vốn rủi ro, tỷ trọng, lô chẵn,
+    khối lượng tối đa theo cài đặt). **Nhật ký lệnh** lưu điểm rủi ro lúc vào, lãi/lỗ theo giá trực
+    tiếp; cứ 2 phút đánh giá lại lệnh đang mở và **cảnh báo** (giao diện + Telegram) khi chạm/tiến sát
+    cắt lỗ, đạt chốt lời, rủi ro tăng mạnh hoặc có tin bất lợi mới. Vốn & giới hạn rủi ro lưu trong
+    database cục bộ. Cùng bộ chấm điểm dùng cho bot Telegram:
+    `/danhgia MUA FPT 58.2 SL 56 TP 62 KL 1000` (chỉ đánh giá), `/vaolenh …` (đánh giá + lưu),
+    `/lenhmo`, `/dong 12 [giá]`, `/caidat 500000000 2 20`, `/trogiup` — bot chỉ nhận lệnh từ đúng
+    `TELEGRAM_CHAT_ID`. Kết quả là đánh giá định lượng để tham khảo, không phải khuyến nghị mua/bán.
+  - Ô tìm kiếm trên thanh công cụ lọc nhanh mã/tên. Nút **⛶** vào chế độ toàn màn hình;
+    trên điện thoại các vùng tự xếp 1–2 cột.
 - **Thời gian thực** (không cần tải lại trang, không có nút cập nhật thủ công):
-  - **Giá trực tiếp** lấy mỗi 15 giây (`LIVE_INTERVAL_SECONDS`) từ Binance (crypto) và CNBC
-    (chỉ số, vàng/dầu, tỷ giá) rồi **đẩy ngay** lên giao diện qua luồng `/stream`
-    (Server-Sent Events). Ô số nháy xanh khi tăng, đỏ khi giảm; % hiển thị là **% trong phiên**
+  - **Giá trực tiếp** lấy mỗi 15 giây (`LIVE_INTERVAL_SECONDS`) từ Binance (crypto), CNBC
+    (chỉ số, hàng hoá, tỷ giá) và SSI iBoard (chỉ số sàn, chỉ số ngành, cổ phiếu VN) rồi **đẩy ngay**
+    lên giao diện qua luồng `/stream` (Server-Sent Events — lần đầu gửi toàn bộ, sau đó chỉ các mã
+    vừa đổi giá). Ô số nháy xanh khi tăng, đỏ khi giảm; % hiển thị là **% trong phiên**
     (crypto: 24h). Đèn trên thẻ chỉ số: xanh nhấp nháy = đang giao dịch, xám = thị trường đóng cửa.
+  - Dữ liệu chu kỳ chậm mỗi 5 phút (`MARKET_INTERVAL_SECONDS`): vàng SJC (PNJ), tỷ giá
+    Vietcombank, vốn hoá crypto (CoinGecko), sparkline, lịch sự kiện (ForexFactory, mỗi giờ).
   - **Tin tức & kiểm chứng đa nguồn** chạy tự động mỗi 10 phút (`COLLECT_INTERVAL_SECONDS`);
     xong chu kỳ, vùng tin / cảnh báo / Tăng-Giảm / Dovish-Hawkish tự thay nội dung tại chỗ.
   - Thanh công cụ: "● TRỰC TIẾP · giá HH:MM:SS · tin HH:MM". Mất kết nối sẽ chuyển đỏ và
@@ -98,6 +134,17 @@ Luồng hoàn chỉnh: **thu thập → kiểm chứng → hiển thị giao di�
   - ⚡ **Đột biến trong ~1 giờ** — chứng khoán ±1%, hàng hoá ±1.5%, crypto ±3%, tỷ giá ±0.5%.
   - 🦅🕊️ Giọng điệu chính sách tiền tệ đổi chiều (Dovish ↔ Hawkish).
   - 🛡️ Sự cố dữ liệu: chỉ số mất toàn bộ nguồn, các nguồn lệch nhau vượt ngưỡng.
+- **🗞 Tóm tắt tin ngày hôm qua** — mỗi sáng lúc `TELEGRAM_RECAP_HOUR` (mặc định 7:00 giờ VN): mọi tin có
+  giờ đăng trong ngày hôm qua (gom từ các lần thu thập, kể cả tin sáng nay mới lấy được), số tin / nguồn /
+  tin ảnh hưởng cao, giọng điệu Dovish/Hawkish cả ngày + tác động ước tính tới CK, vàng, dầu, crypto, USD,
+  giá chốt các chỉ số chính, rồi theo từng lĩnh vực tối đa 5 tin quan trọng nhất (link bài gốc), cuối cùng
+  là lịch sự kiện kinh tế hôm nay. **Chỉ gồm tin quan trọng, ảnh hưởng lớn tới thị trường**: mỗi tin được chấm
+  điểm `market_importance` (vĩ mô – chính sách trong tiêu đề +3, toàn thị trường +2, mức ảnh hưởng Cao +3,
+  tín hiệu Dovish/Hawkish +2, ≥2 nguồn xác nhận +2…, tin mềm như giải thưởng/khai trương −4); chỉ tin đạt
+  `REPORT_MIN_IMPORTANCE` (mặc định 5) được đưa vào — áp dụng cho cả mục tin của bản tin 8h/20h. Phần tác
+  động thị trường chỉ hiện khi có ≥2 tin mang tín hiệu. Mỗi ngày gửi một lần; server tắt lúc 7:00 thì tự gửi bù khi bật lại
+  (trước 23:00). Báo rõ nếu hôm qua server chỉ chạy một phần ngày. Nút **"🗞 Tóm tắt hôm qua"** ở tab Tổng
+  quan để xem trước và gửi ngay.
 - **📰 Tin tức mới** — tin nhắn RIÊNG, chia theo 4 nhóm như màn hình chính (📈 Chứng khoán thế giới ·
   🛢️ Vàng & Dầu · 🪙 Tiền mã hoá · 🇻🇳 CK & Doanh nghiệp VN). Mỗi tin: mức ảnh hưởng (🔴/🟠/⚪), tiêu đề
   (link bài gốc), giờ đăng (giờ VN), nguồn, ✓ số nguồn xác nhận, chiều tác động, tóm tắt.
@@ -145,7 +192,13 @@ app/
   news_service.py    # gộp trùng + đối chiếu chéo + đánh giá ảnh hưởng
   enrich.py          # dịch tiếng Việt + chấm mức ảnh hưởng thị trường
   market_tone.py     # chỉ số Dovish/Hawkish
-  homepage.py        # view-model trang chủ
+  live.py            # giá trực tiếp 15 giây (Binance, CNBC, SSI) + luồng /stream
+  marketdata.py      # dữ liệu chu kỳ chậm: vàng SJC, tỷ giá VCB, lịch sự kiện, sparkline
+  homepage.py        # view-model trang chủ (các tab)
+  risk.py            # chấm điểm rủi ro lệnh theo fundamental + kiểm tra quản lý vốn
+  trades.py          # nhật ký lệnh, lãi/lỗ, theo dõi & cảnh báo lệnh đang mở
+  telegram_bot.py    # nhận lệnh /danhgia, /vaolenh, /lenhmo, /dong qua Telegram
+  recap.py           # tóm tắt tin ngày hôm qua, gửi Telegram 7:00 mỗi sáng
   storage.py         # SQLite + audit trail (readings / verifications / news)
   notifier.py        # gửi Telegram: cảnh báo tức thời + bản tin định kỳ
   pipeline.py        # thu thập -> kiểm chứng -> lưu -> dịch -> thông báo

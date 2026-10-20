@@ -7,11 +7,14 @@ Khái niệm tài chính:
   Thường hỗ trợ tài sản rủi ro và vàng, gây áp lực lên USD.
 
 Phương pháp:
-1. Mỗi tin được quét từ khoá tín hiệu (khớp NGUYÊN TỪ) ở tiêu đề + tóm tắt gốc (EN).
+1. Mỗi tin được quét từ khoá tín hiệu (khớp NGUYÊN TỪ) ở tiêu đề + tóm tắt gốc (tiếng Anh
+   hoặc tiếng Việt với tin trong nước).
 2. Tin nghiêng về phía có nhiều tín hiệu hơn; bằng nhau (cùng >0) = "mixed".
 3. Tổng hợp có TRỌNG SỐ: w = mức ảnh hưởng (1-3) + 1 nếu tin được ≥2 nguồn xác nhận.
 4. Kết quả: % Dovish / % Trung lập / % Hawkish trên tổng trọng số, và điểm nghiêng
    ròng net = (H - D) / (H + D) * 100 chỉ tính trên các tin CÓ tín hiệu chính sách.
+5. Tác động tới từng nhóm thị trường (market_effects) suy ra từ độ nghiêng theo cơ chế truyền
+   dẫn chính sách — là ước tính định tính, không phải dự báo giá.
 """
 import re
 from typing import Dict, List, Optional
@@ -27,6 +30,11 @@ _HAWKISH = [
     "price pressures", "wage pressures", "overheating", "inflation fears",
     "strong jobs report", "yields surge", "yields jump", "yields rise",
     "bond selloff", "bond sell-off", "cpi beats",
+    # Tiếng Việt (tin CafeF / Vietstock / VnEconomy và bản dịch)
+    "tăng lãi suất", "nâng lãi suất", "lãi suất tăng", "giữ lãi suất cao", "thắt chặt tiền tệ",
+    "thắt chặt chính sách", "diều hâu", "hút ròng", "phát hành tín phiếu",
+    "lạm phát tăng", "lạm phát cao", "lạm phát nóng", "lạm phát tăng tốc", "lợi suất tăng",
+    "rút thanh khoản",
 ]
 
 # --- Tín hiệu DOVISH (nới lỏng) ---
@@ -40,6 +48,10 @@ _DOVISH = [
     "weak jobs", "jobs miss", "unemployment rises", "recession fears",
     "economic slowdown", "growth slows", "soft landing",
     "fed pause", "rate pause", "pauses rates", "pivot",
+    # Tiếng Việt
+    "giảm lãi suất", "hạ lãi suất", "cắt giảm lãi suất", "lãi suất giảm", "nới lỏng tiền tệ",
+    "nới lỏng chính sách", "bồ câu", "bơm tiền", "bơm ròng", "bơm thanh khoản", "hỗ trợ thanh khoản",
+    "kích thích kinh tế", "gói kích thích", "lạm phát giảm", "lạm phát hạ nhiệt", "lợi suất giảm",
 ]
 
 
@@ -49,6 +61,13 @@ def _compile(words: List[str]) -> "re.Pattern":
 
 _RE_H = _compile(_HAWKISH)
 _RE_D = _compile(_DOVISH)
+# Đuôi phủ định ngay sau tín hiệu (tối đa 1 từ đệm): odds/bets/hopes ... fall/fade/ease…
+_RE_NEGATE = re.compile(
+    r"\s*(?:-\s*)?(?:(?:odds|bets|expectations|hopes|fears|chances|bets)\s+)?"
+    r"(?:fall|falls|fell|fade|fades|faded|ease|eases|eased|recede|recedes|dim|dims|wane|wanes|cool|cools|"
+    r"decrease|decreases|decreased|decline|declines|declined|drop|drops|dropped|slip|slips|slipped|"
+    r"diminish|diminishes|subside|subsides|retreat|retreats|shrink|shrinks|"
+    r"giảm|hạ nhiệt|suy yếu|lùi xa)\b", re.I)
 
 _TONE_LABELS = {
     "hawkish": ("Hawkish", "🦅"),
@@ -58,11 +77,74 @@ _TONE_LABELS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# TÁC ĐỘNG TỚI TỪNG NHÓM THỊ TRƯỜNG — theo cơ chế truyền dẫn chính sách tiền tệ:
+# hướng ảnh hưởng khi tín hiệu HAWKISH (+1 = có lợi/tăng, -1 = bất lợi/giảm); DOVISH đảo chiều.
+# (key, tên, hướng khi hawkish, giải thích khi hawkish, giải thích khi dovish)
+# ---------------------------------------------------------------------------
+MARKETS = [
+    ("ck_tg", "CK thế giới", -1, "Lãi suất cao làm giảm định giá cổ phiếu",
+     "Chi phí vốn giảm, hỗ trợ định giá cổ phiếu"),
+    ("ck_vn", "CK Việt Nam", -1, "Áp lực tỷ giá, khối ngoại dễ rút vốn",
+     "Dư địa nới lỏng, dòng vốn có thể quay lại"),
+    ("vang", "Vàng", -1, "Lợi suất thực tăng, vàng kém hấp dẫn",
+     "Lợi suất thực giảm, hỗ trợ giá vàng"),
+    ("dau", "Dầu", -1, "Kỳ vọng nhu cầu năng lượng chậm lại",
+     "Kỳ vọng nhu cầu năng lượng phục hồi"),
+    ("crypto", "Crypto", -1, "Thanh khoản thắt lại, tài sản rủi ro chịu áp lực",
+     "Thanh khoản dồi dào, khẩu vị rủi ro tăng"),
+    ("usd", "USD / tỷ giá", +1, "USD mạnh lên, USD/VND chịu áp lực tăng",
+     "USD suy yếu, tỷ giá hạ nhiệt"),
+]
+
+
+def market_effects(lean: Optional[float]) -> List[Dict]:
+    """Tác động ước tính tới từng nhóm thị trường từ độ nghiêng chính sách.
+
+    lean: điểm nghiêng ròng -100 (dovish) .. +100 (hawkish); None = không có tín hiệu.
+    |lean| < 15 -> trung tính; ≥ 50 -> tác động mạnh.
+    """
+    out = []
+    for key, name, hawk_dir, why_h, why_d in MARKETS:
+        if lean is None or abs(lean) < 15:
+            d, why = 0, "Chưa có tín hiệu chính sách rõ ràng"
+        else:
+            d = hawk_dir if lean > 0 else -hawk_dir
+            why = why_h if lean > 0 else why_d
+        strong = lean is not None and abs(lean) >= 50
+        if d > 0:
+            label = "Tăng mạnh" if key == "usd" and strong else ("Tăng" if key == "usd" else
+                                                                ("Tích cực mạnh" if strong else "Tích cực"))
+        elif d < 0:
+            label = "Giảm mạnh" if key == "usd" and strong else ("Giảm" if key == "usd" else
+                                                                ("Tiêu cực mạnh" if strong else "Tiêu cực"))
+        else:
+            label = "Trung tính"
+        out.append({"key": key, "name": name, "dir": d, "label": label, "why": why,
+                    "arrow": "▲" if d > 0 else ("▼" if d < 0 else "■")})
+    return out
+
+
+def item_effects(tone: Dict) -> List[Dict]:
+    """Tác động của MỘT tin: tin hawkish/dovish -> hướng tác động tới từng nhóm thị trường."""
+    t = tone.get("tone")
+    if t not in ("hawkish", "dovish"):
+        return []
+    n = abs(len(tone.get("hawkish_signals", [])) - len(tone.get("dovish_signals", [])))
+    return market_effects((60 if n >= 2 else 40) * (1 if t == "hawkish" else -1))
+
+
 def assess_tone(title: str, summary: str = "") -> Dict:
-    """Chấm giọng điệu chính sách cho một tin (trên văn bản gốc tiếng Anh)."""
+    """Chấm giọng điệu chính sách cho một tin (văn bản gốc — tiếng Anh hoặc tiếng Việt)."""
     text = f" {title} {summary} "
-    h = sorted({m.lower() for m in _RE_H.findall(text)})
-    d = sorted({m.lower() for m in _RE_D.findall(text)})
+    h_set, d_set = set(), set()
+    # Tín hiệu bị phủ định ngay sau đó ("rate hike odds fall", "kỳ vọng tăng lãi suất giảm")
+    # mang nghĩa ngược lại -> tính cho phía đối diện.
+    for rx, same, other in ((_RE_H, h_set, d_set), (_RE_D, d_set, h_set)):
+        for m in rx.finditer(text):
+            sig = m.group(0).lower()
+            (other if _RE_NEGATE.match(text, m.end()) else same).add(sig)
+    h, d = sorted(h_set), sorted(d_set)
     if len(h) > len(d):
         tone = "hawkish"
     elif len(d) > len(h):

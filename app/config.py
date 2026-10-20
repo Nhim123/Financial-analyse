@@ -132,6 +132,51 @@ COMMODITIES = [
     {"key": "BRENT", "name": "Dầu thô Brent",     "cnbc": "@LCO.1", "yahoo": "BZ=F"},
 ]
 
+# ---------------------------------------------------------------------------
+# MÃ CHỈ HIỂN THỊ GIÁ TRỰC TIẾP (giao diện 4 tab) — một nguồn, không qua kiểm chứng đa nguồn.
+# ---------------------------------------------------------------------------
+# Chu kỳ lấy dữ liệu "chậm": vàng SJC, tỷ giá ngân hàng, lịch sự kiện, sparkline, vốn hoá crypto.
+MARKET_INTERVAL_SECONDS = int(os.getenv("MARKET_INTERVAL_SECONDS", "300"))
+
+EXTRA_CRYPTO = [
+    {"key": "ADA",  "name": "Cardano",   "coingecko": "cardano",       "binance": "ADAUSDT"},
+    {"key": "DOGE", "name": "Dogecoin",  "coingecko": "dogecoin",      "binance": "DOGEUSDT"},
+    {"key": "AVAX", "name": "Avalanche", "coingecko": "avalanche-2",   "binance": "AVAXUSDT"},
+]
+
+# Hàng hoá bổ sung (CNBC, hợp đồng tương lai gần nhất).
+EXTRA_COMMODITIES = [
+    {"key": "XAG", "name": "Bạc",            "unit": "USD/oz",    "cnbc": "@SI.1"},
+    {"key": "HG",  "name": "Đồng",           "unit": "USD/lb",    "cnbc": "@HG.1"},
+    {"key": "NG",  "name": "Khí tự nhiên",   "unit": "USD/MMBtu", "cnbc": "@NG.1"},
+    {"key": "KC",  "name": "Cà phê Arabica", "unit": "US¢/lb",    "cnbc": "@KC.1"},
+]
+
+# Cặp tiền hiển thị theo quy ước thị trường. "cnbc" = mã lấy giá trực tiếp (không đảo chiều);
+# "vcb" = mã ngoại tệ lấy giá mua/bán tại Vietcombank; EURVND được suy ra = EURUSD × USDVND.
+FX_PAIRS = [
+    {"key": "USDVND", "pair": "USD/VND", "name": "Đô la Mỹ",      "dec": 0, "vcb": "USD"},
+    {"key": "EURUSD", "pair": "EUR/USD", "name": "Euro",          "dec": 4, "vcb": "EUR", "cnbc": "EUR="},
+    {"key": "USDJPY", "pair": "USD/JPY", "name": "Yên Nhật",      "dec": 2, "vcb": "JPY"},
+    {"key": "GBPUSD", "pair": "GBP/USD", "name": "Bảng Anh",      "dec": 4, "vcb": "GBP", "cnbc": "GBP="},
+    {"key": "USDCNY", "pair": "USD/CNY", "name": "Nhân dân tệ",   "dec": 4, "vcb": "CNY"},
+    {"key": "AUDUSD", "pair": "AUD/USD", "name": "Đô la Úc",      "dec": 4, "vcb": "AUD", "cnbc": "AUD="},
+    {"key": "EURVND", "pair": "EUR/VND", "name": "Euro / VND",    "dec": 0, "vcb": "EUR"},
+    {"key": "USDCHF", "pair": "USD/CHF", "name": "Franc Thụy Sĩ", "dec": 4, "vcb": "CHF", "cnbc": "CHF="},
+]
+
+# Chứng khoán Việt Nam (SSI iBoard): chỉ số sàn [key hiển thị, tên, mã SSI] và chỉ số ngành HOSE.
+VN_INDICES = [
+    ("VNINDEX", "VN-Index", "VNINDEX"), ("VN30", "VN30", "VN30"), ("HNX", "HNX-Index", "HNXIndex"),
+    ("HNX30", "HNX30", "HNX30"), ("UPCOM", "UPCOM", "HNXUpcomIndex"),
+]
+VN_SECTORS = [
+    ("VNFIN", "Tài chính"), ("VNREAL", "Bất động sản"), ("VNMAT", "Nguyên vật liệu"),
+    ("VNIT", "Công nghệ"), ("VNCONS", "Tiêu dùng thiết yếu"), ("VNCOND", "Tiêu dùng không TY"),
+    ("VNENE", "Năng lượng"), ("VNHEAL", "Y tế"), ("VNIND", "Công nghiệp"),
+    ("VNUTI", "Tiện ích"), ("VNMID", "Vốn hoá vừa"), ("VNSML", "Vốn hoá nhỏ"),
+]
+
 ASSET_LABELS = {
     "crypto": "Tiền mã hoá (Crypto)",
     "fx": "Tỷ giá (FX)",
@@ -142,7 +187,8 @@ ASSET_LABELS = {
 # ---------------------------------------------------------------------------
 # TIN TỨC (News)
 # ---------------------------------------------------------------------------
-NEWS_MAX_PER_CLASS = int(os.getenv("NEWS_MAX_PER_CLASS", "8"))
+# Số tin tối đa mỗi lĩnh vực (trang chủ hiện 3 tin/nhóm, trang "Xem thêm" của lĩnh vực hiện toàn bộ).
+NEWS_MAX_PER_CLASS = int(os.getenv("NEWS_MAX_PER_CLASS", "20"))
 NEWS_STALE_HOURS = int(os.getenv("NEWS_STALE_HOURS", "48"))
 # Ngưỡng tương đồng tiêu đề để coi là "cùng một tin" (đối chiếu chéo / gộp trùng).
 NEWS_SIM_THRESHOLD = float(os.getenv("NEWS_SIM_THRESHOLD", "0.5"))
@@ -225,6 +271,12 @@ TELEGRAM_PROXY = os.getenv("TELEGRAM_PROXY", "").strip() or None
 TELEGRAM_ENABLED = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
 # Giờ gửi bản tin định kỳ (giờ Việt Nam), phân tách bằng dấu phẩy. Để trống = không gửi.
 TELEGRAM_DIGEST_HOURS = os.getenv("TELEGRAM_DIGEST_HOURS", "8,20").strip()
+# Báo cáo định kỳ (tóm tắt 7h, bản tin 8h/20h) chỉ giữ tin có điểm "quan trọng với thị trường"
+# (enrich.market_importance) ≥ ngưỡng này. Tăng để lọc chặt hơn, giảm để lấy nhiều tin hơn.
+REPORT_MIN_IMPORTANCE = int(os.getenv("REPORT_MIN_IMPORTANCE", "5"))
+# Giờ gửi bản "Tóm tắt tin ngày hôm qua" mỗi sáng (giờ VN, 0–23). Để trống = không gửi.
+_recap_hour = os.getenv("TELEGRAM_RECAP_HOUR", "7").strip()
+TELEGRAM_RECAP_HOUR = int(_recap_hour) if _recap_hour.isdigit() and int(_recap_hour) < 24 else None
 # 1 = chỉ đẩy ngay tin ảnh hưởng Cao ĐÃ được ≥2 nguồn xác nhận; 0 = mọi tin ảnh hưởng Cao.
 TELEGRAM_NEWS_REQUIRE_VERIFIED = os.getenv("TELEGRAM_NEWS_REQUIRE_VERIFIED", "0") == "1"
 # Chỉ đẩy ngay tin đăng trong N giờ gần nhất (tin cũ hơn chỉ xuất hiện trong bản tin định kỳ).

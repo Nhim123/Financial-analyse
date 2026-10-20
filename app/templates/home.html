@@ -2,524 +2,1280 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FinWatch Terminal — Trung tâm tin tức & cảnh báo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FinWatch">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d81e2c'/%3E%3Cpath d='M18 48 32 14l14 34' fill='none' stroke='%23fff' stroke-width='7' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>FinWatch — Trung tâm tin tức & cảnh báo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* Design tokens — docs/design/README.md (màn 2A) */
   :root {
-    --accent:#0f766e; --ink:#0f1b17; --ink2:#1c2a24; --mut:#6b7770; --faint:#93a099;
-    --up:#12a150; --dn:#e5484d; --card-bd:#e6eae4; --line:#eef1ec;
+    --accent:#d81e2c; --accent-a06:rgba(216,30,44,.06);
+    --ink:#0f1b17; --ink2:#1c2a24; --mut:#6b7770; --faint:#93a099; --tab:#4a5a53;
+    --bg:#f4f6f2; --bg3:#f0f3ee; --bg4:#f8faf7;
+    --card-bd:#e6eae4; --line:#f4f6f2; --line2:#eef1ec;
+    --up:#12a150; --dn:#e5484d; --flat:#c9a91a; --mid:#b45309;
+    --dark:#0f1b17; --dark-bd:#24332c; --on-dark:#b9c6bf; --on-dark2:#8fa89d;
+    --up-l:#5ee39a; --dn-l:#ff8a8f;
   }
   * { box-sizing:border-box; margin:0; }
-  body {
-    background:#f4f6f2;
-    font-family:'IBM Plex Sans',sans-serif; color:var(--ink);
-    min-height:100vh;
-  }
+  html, body { background:var(--bg); }
+  body { font-family:'IBM Plex Sans',system-ui,sans-serif; color:var(--ink); min-height:100vh;
+         -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  button { font-family:inherit; }
   .mono { font-family:'IBM Plex Mono',monospace; }
-  /* Full màn hình: khung trải kín cửa sổ, không giới hạn bề rộng. */
-  .frame {
-    width:100%; min-height:100vh; background:#f4f6f2;
-    overflow:hidden; display:flex; flex-direction:column;
-  }
-  .autoinfo { display:flex; align-items:center; gap:6px; padding:6px 11px; border-radius:9px;
-              background:#e7f6ec; color:#0e7a3c; font:500 11.5px 'IBM Plex Sans'; white-space:nowrap; }
-  .autoinfo .dot { width:6px; height:6px; border-radius:50%; background:var(--up);
-                   animation:pulseDot 1.4s ease-in-out infinite; }
-  .btnicon { background:#f0f3ee; color:#4a5a53; border:1px solid #e0e5dd; border-radius:9px;
-             width:34px; height:32px; font-size:16px; line-height:1; cursor:pointer; }
-  .btnicon:hover { background:#e6eae4; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background:#cbd3c9; border-radius:8px; }
   @keyframes tickerRun { from { transform:translateX(0);} to { transform:translateX(-50%);} }
   @keyframes pulseDot { 0%,100% {opacity:1; transform:scale(1);} 50% {opacity:.35; transform:scale(.8);} }
-  /* Nháy nền khi giá đổi: xanh = tăng, đỏ = giảm */
-  @keyframes flashUp { 0% { background:rgba(18,161,80,.28); } 100% { background:transparent; } }
-  @keyframes flashDn { 0% { background:rgba(229,72,77,.28); } 100% { background:transparent; } }
-  .flash-up { animation:flashUp 1.4s ease-out; border-radius:5px; }
-  .flash-dn { animation:flashDn 1.4s ease-out; border-radius:5px; }
-  /* Đèn trạng thái phiên trên thẻ chỉ số */
-  .mk { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px;
-        vertical-align:middle; background:#c7cfc9; }
-  .mk.on { background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
-  .autoinfo.off { background:#fdeaef; color:#c0303a; }
-  .autoinfo.off .dot { background:var(--dn); }
+  @keyframes flashUp { 0% { background:rgba(18,161,80,.22); } 100% { background:transparent; } }
+  @keyframes flashDn { 0% { background:rgba(229,72,77,.22); } 100% { background:transparent; } }
+  .flash-up { animation:flashUp 1.4s ease-out; border-radius:4px; }
+  .flash-dn { animation:flashDn 1.4s ease-out; border-radius:4px; }
+  .up { color:var(--up); } .dn { color:var(--dn); } .fl { color:var(--faint); } .eq { color:var(--flat); }
+  .pulse { animation:pulseDot 1.4s ease-in-out infinite; }
 
-  /* Toolbar */
-  .toolbar { height:56px; background:#fff; border-bottom:1px solid var(--card-bd);
-             display:flex; align-items:center; gap:22px; padding:0 26px; }
-  .logo { display:flex; align-items:center; gap:10px; }
-  .logomark { width:32px; height:32px; border-radius:10px; background:var(--accent);
-              display:flex; align-items:center; justify-content:center;
-              color:#fff; font:700 18px 'IBM Plex Sans'; }
-  .logoname { font:700 16px 'IBM Plex Sans'; color:var(--ink); }
-  .logoname span { color:var(--accent); }
+  .frame { width:100%; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ===== Toolbar ===== */
+  .toolbar { height:56px; background:#fff; border-bottom:1px solid var(--card-bd); display:flex;
+             align-items:center; padding:0 26px; gap:22px; flex:0 0 auto; position:sticky; top:0; z-index:20; }
+  .brand { display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  .logomark { width:34px; height:34px; border-radius:10px; background:var(--accent); display:flex;
+              align-items:center; justify-content:center; color:#fff; font:700 17px/1 'IBM Plex Mono'; }
+  .brandname { font:700 15px/1 'IBM Plex Sans'; color:var(--ink); }
+  .tabs { display:flex; gap:4px; }
+  .tab { font:600 13px/1 'IBM Plex Sans'; color:var(--tab); background:var(--bg3); padding:8px 14px;
+         border-radius:9px; cursor:pointer; border:0; white-space:nowrap; transition:background .15s, color .15s; }
+  .tab:hover { background:#e6eae4; }
+  .tab.on { background:var(--accent); color:#fff; }
+  .tab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .spacer { flex:1; }
-  .search { display:flex; align-items:center; gap:7px; border:1px solid #e0e5dd;
-            border-radius:10px; padding:7px 12px; color:var(--faint); font:400 12px 'IBM Plex Sans'; }
-  .clock { font:500 13px 'IBM Plex Mono'; color:var(--mut); min-width:70px; text-align:right; }
-  .btncollect { background:var(--accent); color:#fff; border:0; border-radius:9px;
-                padding:8px 14px; font:600 12px 'IBM Plex Sans'; cursor:pointer; }
-  .btncollect:disabled { opacity:.6; cursor:wait; }
+  .search { display:flex; align-items:center; gap:8px; height:34px; padding:0 13px; border-radius:9px;
+            background:#fff; border:1px solid #e0e5dd; color:var(--mut); }
+  .search input { border:0; outline:0; font:400 13px 'IBM Plex Sans'; color:var(--ink); width:150px; background:transparent; }
+  .search:focus-within { border-color:var(--accent); }
+  .clock { font:500 12px/1 'IBM Plex Mono'; color:var(--mut); min-width:58px; text-align:right; }
+  .liveinfo { display:flex; align-items:center; gap:6px; height:30px; padding:0 10px; border-radius:9px;
+              background:#e7f6ec; color:#0e7a3c; font:500 11px 'IBM Plex Sans'; white-space:nowrap; }
+  .liveinfo .dot { width:6px; height:6px; border-radius:50%; background:var(--up); }
+  .liveinfo.off { background:#fdeaef; color:#c0303a; } .liveinfo.off .dot { background:var(--dn); }
+  .btnicon { background:var(--bg3); color:var(--tab); border:1px solid #e0e5dd; border-radius:9px;
+             width:34px; height:32px; font-size:15px; line-height:1; cursor:pointer; }
+  .btnicon:hover { background:#e6eae4; }
 
-  /* Ticker */
-  .ticker { height:38px; background:var(--ink); overflow:hidden; position:relative; }
-  .tickertrack { display:flex; width:max-content; height:100%; align-items:center;
-                 animation:tickerRun 38s linear infinite; }
-  .titem { display:flex; align-items:center; gap:8px; padding:0 18px; height:100%;
-           border-right:1px solid #24332c; white-space:nowrap; }
-  .titem .lb { color:#b9c6bf; font:500 11px 'IBM Plex Sans'; }
-  .titem .vl { color:#fff; font:600 12px 'IBM Plex Mono'; }
-  .titem .ch { font:600 11px 'IBM Plex Mono'; }
+  /* ===== Ticker ===== */
+  .ticker { height:38px; background:var(--dark); overflow:hidden; display:flex; align-items:center; flex:0 0 auto; }
+  .tickertrack { display:flex; width:max-content; animation:tickerRun 38s linear infinite; }
+  .ticker:hover .tickertrack { animation-play-state:paused; }
+  .titem { display:flex; align-items:center; gap:8px; padding:0 20px; border-right:1px solid var(--dark-bd); white-space:nowrap; }
+  .titem .lb { font:600 11px/1 'IBM Plex Sans'; color:var(--on-dark); letter-spacing:.03em; }
+  .titem .js-v { font:600 11px/1 'IBM Plex Mono'; color:#fff; }
+  .titem .js-p { font:600 11px/1 'IBM Plex Mono'; }
+  .titem .up { color:var(--up-l); } .titem .dn { color:var(--dn-l); } .titem .eq, .hero .eq { color:#e8cf5a; }
 
-  /* Header */
-  .pagehead { display:flex; align-items:flex-start; padding:18px 28px 14px; gap:16px; }
-  .pagehead h1 { font:700 22px 'IBM Plex Sans'; color:var(--ink); }
-  .datesub { color:var(--mut); font:400 13px 'IBM Plex Sans'; margin-top:3px; }
-  .chip { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:20px;
-          font:600 11px 'IBM Plex Sans'; white-space:nowrap; }
-  .chip .dot { width:7px; height:7px; border-radius:50%; }
-  .chip.ok { background:#e7f6ec; color:#0e7a3c; }
-  .chip.ok .dot { background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
-  .chip.al { background:#fdeaef; color:#c0303a; }
-  .chip.al .dot { background:var(--dn); animation:pulseDot 1.4s ease-in-out infinite; }
+  /* ===== Chung ===== */
+  .pane { display:none; flex:1; flex-direction:column; gap:14px; padding:18px 28px 22px; }
+  .pane.on { display:flex; }
+  .head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .head h1 { font:700 22px/1.1 'IBM Plex Sans'; color:var(--ink); }
+  .head .sub { font:400 13px/1 'IBM Plex Sans'; color:var(--mut); margin-top:6px; }
+  .chips { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .chip { display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px;
+          font:600 12px/1 'IBM Plex Sans'; white-space:nowrap; border:0; }
+  .chip .dot { width:8px; height:8px; border-radius:50%; }
+  .chip.ok { background:#e7f6ec; color:#0e7a3c; } .chip.ok .dot { background:var(--up); }
+  .chip.al { background:#fdeaef; color:#c0303a; } .chip.al .dot { background:var(--dn); }
+  .chip.off { background:var(--bg3); color:var(--mut); } .chip.off .dot { background:#b8c2bb; }
+  .chip.wh { background:#fff; border:1px solid var(--card-bd); gap:14px; }
+  button.chip { cursor:pointer; } button.chip:hover { filter:brightness(.97); }
+  .card { background:#fff; border:1px solid var(--card-bd); border-radius:18px; min-width:0; }
+  .ct { font:700 15px/1 'IBM Plex Sans'; color:var(--ink); }
+  .ct.sm { font-size:13px; } .ct.md { font-size:14px; } .ct.lg { font-size:16px; }
+  .live { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec; flex:0 0 auto; }
+  .live .dot { width:6px; height:6px; border-radius:50%; background:var(--dn); }
+  .live b { font:600 10px/1 'IBM Plex Sans'; color:#0e7a3c; }
+  .faint { font:400 11px/1.3 'IBM Plex Sans'; color:var(--faint); }
+  .empty { color:var(--faint); font:400 12px/1.5 'IBM Plex Sans'; padding:10px 0; }
+  .spk { flex:0 0 auto; display:block; }
+  .tag { font:600 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; padding:3px 7px;
+         border-radius:5px; white-space:nowrap; }
+  .badge-new { display:inline-flex; font:700 8px/1 'IBM Plex Sans'; letter-spacing:.06em; color:#fff;
+               background:var(--accent); padding:3px 5px; border-radius:4px; }
 
-  /* Index cards */
-  .cards6 { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:0 28px; }
-  .icard { background:#fff; border:1px solid var(--card-bd); border-radius:14px; padding:11px 13px; }
+  /* ===== Thẻ chỉ số ===== */
+  .cards6 { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }
+  .icard { background:#fff; border:1px solid var(--card-bd); border-radius:14px; padding:11px 13px;
+           display:flex; flex-direction:column; gap:6px; }
   .icard .r1 { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
-  .icard .nm { font:600 12px 'IBM Plex Sans'; color:var(--ink2); }
-  .icard .ch { font:600 11px 'IBM Plex Mono'; }
-  .icard .vl { font:600 18px 'IBM Plex Mono'; color:var(--ink); margin-top:4px; }
+  .icard .nm { font:600 12px/1 'IBM Plex Sans'; color:var(--ink); white-space:nowrap; }
+  .icard .js-p { font:600 11px/1 'IBM Plex Mono'; white-space:nowrap; }
+  .icard .js-v { font:600 18px/1 'IBM Plex Mono'; color:var(--ink); }
+  .mk { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:middle; background:#c7cfc9; }
+  .mk.on { background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
 
-  .up { color:var(--up); } .dn { color:var(--dn); } .fl { color:var(--faint); }
-
-  /* Main grid */
-  .main { flex:1; display:flex; flex-direction:column; gap:14px; padding:14px 28px 28px; }
-  /* Hàng dưới vùng tin: Tăng | Giảm | Cảnh báo | Bản đồ nhiệt */
-  .lowergrid { display:grid; gap:16px; align-items:stretch;
-               grid-template-columns:repeat(3, minmax(0,1fr)) minmax(0,1.3fr); }
-  .card { background:#fff; border:1px solid var(--card-bd); border-radius:18px; }
-  .cardhead { display:flex; align-items:center; gap:10px; }
-  .cardtitle { font:700 16px 'IBM Plex Sans'; color:var(--ink); }
-  .live { display:flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px; background:#e7f6ec; }
-  .live .dot { width:6px; height:6px; border-radius:50%; background:var(--up); animation:pulseDot 1.4s ease-in-out infinite; }
-  .live b { font:600 10px 'IBM Plex Sans'; color:#0e7a3c; }
-
-  /* Vùng tin theo nhóm */
-  .zonehead { display:flex; align-items:center; gap:10px; }
-  .zones { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; }
-  .zone { background:#fff; border:1px solid var(--card-bd); border-top:4px solid var(--zc);
-          border-radius:16px; padding:14px 16px 10px; display:flex; flex-direction:column; min-width:0; }
-  .zhead { display:flex; align-items:center; gap:8px; }
-  .zicon { width:30px; height:30px; border-radius:9px; background:var(--zbg); display:flex;
-           align-items:center; justify-content:center; font-size:15px; flex:0 0 30px; }
-  .ztitle { font:700 14.5px 'IBM Plex Sans'; color:var(--ink); flex:1; min-width:0; }
-  .zcount { font:700 11px 'IBM Plex Mono'; color:var(--zc); background:var(--zbg);
-            padding:3px 9px; border-radius:10px; white-space:nowrap; }
-  .zstats { font:500 10.5px 'IBM Plex Sans'; color:var(--faint); margin:6px 0 4px 38px; }
-  .zstats .ok { color:#0e7a3c; } .zstats .hi { color:#c0303a; }
-  .zitem { display:block; padding:10px 0 10px 10px; border-bottom:1px solid var(--line);
-           border-left:3px solid transparent; text-decoration:none; margin-left:-10px; }
-  .zitem:last-of-type { border-bottom:0; }
-  .zitem.new { border-left-color:var(--zc); background:linear-gradient(90deg, var(--zbg), transparent 70%); }
-  .zitem:hover .zt { color:var(--zc); }
-  .zrow { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:3px; }
-  .zrow .t { font:500 11px 'IBM Plex Mono'; color:#4a5a53; }
-  .zt { font:600 13px 'IBM Plex Sans'; color:var(--ink2); line-height:1.38; }
-  .zsum { font:400 11.5px 'IBM Plex Sans'; color:var(--mut); line-height:1.45; margin-top:3px;
+  /* ===== Tổng quan: tin | movers | cảnh báo + heatmap ===== */
+  .ovgrid { display:grid; grid-template-columns:minmax(0,1fr) 268px 420px; gap:16px; align-items:start; }
+  .feed { padding:18px 20px; display:flex; flex-direction:column; }
+  .cardhead { display:flex; align-items:center; justify-content:space-between; gap:9px; }
+  .cardhead .l { display:flex; align-items:center; gap:9px; min-width:0; flex-wrap:wrap; }
+  /* Tin theo lĩnh vực (Tổng quan): 4 thẻ, mỗi thẻ 3 tin + "Xem thêm" */
+  .fields { margin-top:12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .fcard { border:1px solid var(--line2); border-top:3px solid var(--fc); border-radius:14px; padding:12px 14px;
+           display:flex; flex-direction:column; min-width:0; }
+  .fhead { display:flex; align-items:center; gap:8px; }
+  .ficon { width:28px; height:28px; border-radius:8px; background:var(--fb); display:inline-flex; align-items:center;
+           justify-content:center; font-size:14px; flex:0 0 auto; }
+  .ficon.lg { width:34px; height:34px; font-size:17px; margin-right:10px; vertical-align:middle; }
+  .fname { font:700 13.5px/1.25 'IBM Plex Sans'; color:var(--ink); flex:1; min-width:0; }
+  .fstat { font:500 10.5px/1 'IBM Plex Sans'; color:var(--faint); margin:7px 0 2px 36px; }
+  .fnews { display:block; padding:9px 0 9px 9px; margin-left:-9px; border-bottom:1px solid var(--line); border-left:3px solid transparent; }
+  .fnews.new { border-left-color:var(--accent); background:linear-gradient(90deg, var(--accent-a06), transparent 75%); }
+  .fnews:hover .fntitle { color:var(--fc); }
+  .fntitle { font:600 13px/1.38 'IBM Plex Sans'; color:var(--ink2); margin-top:5px;
+             display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .fmore { margin-top:auto; display:flex; align-items:center; justify-content:center; gap:7px; padding:8px 10px;
+           border-radius:10px; background:var(--fb); color:var(--fc); font:600 11.5px 'IBM Plex Sans';
+           transition:filter .18s, transform .18s, box-shadow .18s; }
+  .fcard > .fmore { margin-top:10px; }
+  .fmore:hover { filter:saturate(1.4) brightness(.96); transform:translateY(-1px); box-shadow:0 8px 18px -12px rgba(15,27,23,.45); }
+  .fmore svg { transition:transform .18s; } .fmore:hover svg { transform:translateX(3px); }
+  .tchip { font:600 10.5px/1 'IBM Plex Sans'; padding:4px 8px; border-radius:12px; white-space:nowrap; }
+  .tchip b { font-size:10px; }
+  .tchip.hawk, .tmini.hawk { background:#fdeaef; color:#c0303a; }
+  .tchip.dove, .tmini.dove { background:#e4edfb; color:#2456a8; }
+  .tchip.bal, .tmini.bal { background:var(--bg3); color:var(--tab); }
+  .tmini { font:600 9.5px/1 'IBM Plex Sans'; padding:3px 6px; border-radius:5px; white-space:nowrap; }
+  /* Trang tin của một lĩnh vực */
+  .back { font:500 12px/1 'IBM Plex Sans'; color:var(--accent); display:inline-block; margin-bottom:8px; }
+  .npage .head h1 { display:flex; align-items:center; }
+  .fpills { display:flex; gap:6px; flex-wrap:wrap; }
+  .fpill { font:600 12px/1 'IBM Plex Sans'; padding:8px 12px; border-radius:9px; background:#fff; border:1px solid var(--card-bd); color:var(--tab); white-space:nowrap; }
+  .fpill:hover { border-color:var(--fc); color:var(--fc); }
+  .fpill.on { background:var(--fc); border-color:var(--fc); color:#fff; }
+  .ngridpage { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:16px; align-items:start; }
+  .nlist { padding:8px 18px; }
+  .nrow { display:flex; gap:13px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .nrow:last-child { border-bottom:0; }
+  .nrow.new .ftitle { color:var(--ink); }
+  .nrow:hover .ftitle { color:var(--fc); }
+  .nrow .fsum { -webkit-line-clamp:3; }
+  .imp { font:600 9.5px/1 'IBM Plex Sans'; padding:3px 6px; border-radius:5px; }
+  .imp3 { background:#fdeaef; color:#c0303a; } .imp2 { background:#fbf0df; color:var(--mid); } .imp1 { background:var(--bg3); color:var(--mut); }
+  .ntone { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .effmini { display:flex; gap:8px; flex-wrap:wrap; font:600 10.5px/1 'IBM Plex Mono'; }
+  .nside { display:flex; flex-direction:column; gap:14px; position:sticky; top:72px; min-width:0; }
+  .efftable { margin-top:10px; display:flex; flex-direction:column; }
+  .effrow { display:grid; grid-template-columns:96px 112px minmax(0,1fr); gap:8px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); }
+  .effrow:last-child { border-bottom:0; }
+  .effrow .en { font:600 12px/1.2 'IBM Plex Sans'; color:var(--ink); }
+  .effrow .ea { font:600 12px/1.2 'IBM Plex Sans'; white-space:nowrap; }
+  .effrow .ew { font:400 11px/1.35 'IBM Plex Sans'; color:var(--mut); }
+  .tonecard .efftable { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 24px; }
+  .tonecard .effrow { grid-template-columns:86px minmax(0,1fr); }
+  .tonecard .effrow .ew { grid-column:1 / -1; margin-top:-2px; }
+  /* ===== Đánh giá rủi ro lệnh ===== */
+  .lgrid { display:grid; grid-template-columns:400px minmax(0,1fr); gap:16px; align-items:start; }
+  .lleft { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .oform { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .oform label { display:flex; flex-direction:column; gap:5px; font:600 11px/1 'IBM Plex Sans'; color:var(--mut); }
+  .oform input { font:500 14px 'IBM Plex Mono'; color:var(--ink); border:1px solid #dfe4dc; border-radius:9px;
+                 padding:9px 11px; background:#fff; outline:0; width:100%; min-width:0; }
+  .oform input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-a06); }
+  .oform input#o-note, .oform input#o-sym { font-family:'IBM Plex Sans'; }
+  .ogrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .ainfo { font:400 12px/1.4 'IBM Plex Sans'; color:var(--mut); background:var(--bg4); border:1px dashed var(--line2);
+           border-radius:9px; padding:8px 10px; }
+  .ainfo b { color:var(--ink); }
+  .sidesel button { font-size:12.5px; padding:9px 6px; }
+  .sidesel button[data-side="buy"].on { background:var(--up); }
+  .sidesel button[data-side="sell"].on { background:var(--dn); }
+  .sidesel button:disabled { opacity:.4; cursor:not-allowed; }
+  .obtns { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn { border:1px solid var(--card-bd); background:#fff; color:var(--ink); border-radius:9px; padding:9px 14px;
+         font:600 12.5px 'IBM Plex Sans'; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn.pri { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.pri:hover { filter:brightness(.93); color:#fff; }
+  .btn.sm { padding:5px 10px; font-size:11.5px; }
+  .btn:disabled { opacity:.6; cursor:wait; }
+  .riskres { min-height:420px; }
+  .rhead { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .ring { --c:var(--mid); width:104px; height:104px; border-radius:50%; flex:0 0 auto; display:flex; flex-direction:column;
+          align-items:center; justify-content:center; background:radial-gradient(#fff 58%, transparent 59%),
+          conic-gradient(var(--c) calc(var(--p) * 1%), var(--bg3) 0); }
+  .ring b { font:700 30px/1 'IBM Plex Mono'; color:var(--ink); } .ring span { font:500 10px 'IBM Plex Mono'; color:var(--faint); }
+  .ring.lo { --c:var(--up); } .ring.hi { --c:var(--dn); }
+  .rlvl { font:700 20px/1.1 'IBM Plex Sans'; } .rlvl.lo { color:var(--up); } .rlvl.mid { color:var(--mid); } .rlvl.hi { color:var(--dn); }
+  .rsub { font:400 12.5px/1.45 'IBM Plex Sans'; color:var(--mut); margin-top:4px; }
+  .rsec { margin-top:16px; }
+  .frow { display:grid; grid-template-columns:200px 120px 34px minmax(0,1fr); gap:10px; align-items:center;
+          padding:8px 0; border-bottom:1px solid var(--line); }
+  .frow:last-child { border-bottom:0; }
+  .frow .fn { font:600 12px/1.25 'IBM Plex Sans'; color:var(--ink); }
+  .frow .fb { height:7px; border-radius:4px; background:var(--bg3); overflow:hidden; }
+  .frow .fb i { display:block; height:100%; border-radius:4px; }
+  .frow .fs { font:600 12px/1 'IBM Plex Mono'; text-align:right; }
+  .frow .fd { font:400 11.5px/1.4 'IBM Plex Sans'; color:var(--mut); }
+  .frow.na { opacity:.55; }
+  .k-risk { background:var(--dn); color:var(--dn); } .k-ok { background:var(--up); color:var(--up); }
+  .k-neutral { background:#c9b23a; color:var(--mid); } .k-na { background:#c7cfc9; color:var(--faint); }
+  .fs.k-risk, .fs.k-ok, .fs.k-neutral, .fs.k-na { background:none; }
+  .chk { display:flex; gap:9px; padding:7px 0; border-bottom:1px solid var(--line); font:400 12px/1.4 'IBM Plex Sans'; color:var(--mut); }
+  .chk:last-child { border-bottom:0; }
+  .chk b { color:var(--ink); font-weight:600; }
+  .chk .ic { flex:0 0 18px; font-size:13px; }
+  .mstats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:10px; }
+  .mstats > div { background:var(--bg4); border:1px solid var(--line2); border-radius:10px; padding:9px 10px; }
+  .mstats .k { font:400 10px/1 'IBM Plex Sans'; color:var(--mut); } .mstats .v { font:600 13.5px/1.2 'IBM Plex Mono'; color:var(--ink); margin-top:5px; }
+  .rlist a, .rlist div { display:block; font:400 12px/1.45 'IBM Plex Sans'; color:var(--ink2); padding:5px 0; border-bottom:1px solid var(--line); }
+  .rlist a:hover { color:var(--accent); }
+  .rerr { background:#fdeaef; color:#c0303a; border-radius:10px; padding:12px 14px; font:500 13px/1.5 'IBM Plex Sans'; }
+  .jwrap { overflow-x:auto; margin-top:10px; }
+  .jtable { width:100%; border-collapse:collapse; font:400 12px/1.35 'IBM Plex Sans'; min-width:900px; }
+  .jtable th { text-align:left; font:600 10px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:var(--faint);
+               padding:8px 8px; border-bottom:1px solid var(--line2); white-space:nowrap; }
+  .jtable td { padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .jtable th.r, .jtable td.r { text-align:right; }
+  .sidetag { font:700 9px/1 'IBM Plex Sans'; padding:2px 5px; border-radius:4px; }
+  .sidetag.buy { background:#e7f6ec; color:#0e7a3c; } .sidetag.sell { background:#fdeaef; color:#c0303a; }
+  .rbadge { display:inline-block; min-width:28px; text-align:center; font:700 11px/1 'IBM Plex Mono'; padding:4px 6px; border-radius:6px; }
+  .rbadge.lo { background:#e7f6ec; color:#0e7a3c; } .rbadge.mid { background:#fbf0df; color:var(--mid); } .rbadge.hi { background:#fdeaef; color:#c0303a; }
+  .jal div { font-size:11px; line-height:1.35; margin-bottom:3px; max-width:260px; }
+  .al-hi { color:#c0303a; } .al-mid { color:var(--mid); } .al-lo { color:#0e7a3c; }
+  .ftime { display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; padding-top:1px;
+           font:600 12px/1 'IBM Plex Mono'; color:var(--tab); }
+  .fmeta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .fsrc { font:400 10px/1 'IBM Plex Sans'; color:var(--faint); }
+  .fok { font:600 9.5px/1 'IBM Plex Sans'; color:#0e7a3c; } .fhi { font:600 9.5px/1 'IBM Plex Sans'; color:#c0303a; }
+  .ftitle { font:600 14px/1.4 'IBM Plex Sans'; color:var(--ink2); margin-top:8px; text-wrap:pretty; }
+  .fsum { font:400 12px/1.5 'IBM Plex Sans'; color:var(--mut); margin-top:5px; text-wrap:pretty;
           display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .zempty { color:var(--faint); font:400 12px 'IBM Plex Sans'; padding:14px 0; }
-  .newbadge { background:var(--zc, var(--accent)); color:#fff; font:700 8px 'IBM Plex Sans';
-              padding:2px 6px; border-radius:5px; letter-spacing:.05em; }
-  .nsrc { font:500 10px 'IBM Plex Sans'; color:var(--faint); }
-  .nmini { font:600 9.5px 'IBM Plex Sans'; }
-  .nmini.ok { color:#0e7a3c; } .nmini.hi { color:#c0303a; }
 
-  /* Movers */
-  .movcard { padding:14px 16px; }
-  .movtitle { font:700 14px 'IBM Plex Sans'; margin-bottom:10px; }
-  .movhead { display:flex; align-items:center; justify-content:space-between; gap:6px;
-             flex-wrap:wrap; margin-bottom:8px; }
-  .movhead .movtitle { margin-bottom:0; }
-  .mtabs { display:flex; gap:4px; }
-  .mtab { border:1px solid var(--card-bd); background:#f0f3ee; color:#4a5a53; cursor:pointer;
-          font:600 10.5px 'IBM Plex Sans'; padding:3px 8px; border-radius:7px; }
-  .mtab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .mgroup { display:none; }
-  .mgroup.on { display:block; }
-  .mempty { color:var(--faint); font-size:11px; padding:6px 0; }
-  /* Nút "Xem thêm" & pop-up bảng xếp hạng */
-  .movcard { display:flex; flex-direction:column; }
-  .movcard .mgroup.on { padding-bottom:12px; }
-  .mmore { margin-top:auto; width:100%; display:flex; align-items:center; justify-content:center;
-           gap:8px; padding:9px 12px; border-radius:11px; border:1px solid transparent; cursor:pointer;
-           font:600 12px 'IBM Plex Sans';
+  .movcol { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .seg { display:flex; gap:3px; background:#fff; border:1px solid var(--card-bd); border-radius:11px; padding:3px; }
+  .seg button { flex:1; border:0; background:transparent; color:var(--tab); cursor:pointer; border-radius:8px;
+                font:600 11.5px/1 'IBM Plex Sans'; padding:7px 6px; white-space:nowrap; }
+  .seg button:hover { background:var(--bg3); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .movcard { padding:14px 16px; display:flex; flex-direction:column; }
+  .movtitle { display:flex; align-items:center; gap:7px; font:700 14px/1 'IBM Plex Sans'; color:var(--ink); }
+  .mgroup { display:none; margin-top:6px; padding-bottom:10px; } .mgroup.on { display:block; }
+  .mrow { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .mrow:last-child { border-bottom:0; }
+  .mrow .id { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+  .mrow .sym { font:600 13px/1 'IBM Plex Mono'; color:var(--ink); }
+  .mrow .nm { font:400 10px/1.1 'IBM Plex Sans'; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
+  .mrow .rt { display:flex; align-items:center; gap:9px; flex:0 0 auto; }
+  .mrow .px { text-align:right; }
+  .mrow .js-v { display:block; font:500 12px/1 'IBM Plex Mono'; color:var(--ink); }
+  .mrow .js-p { display:block; font:600 11px/1 'IBM Plex Mono'; margin-top:3px; }
+  .mmore { margin-top:4px; width:100%; display:flex; align-items:center; justify-content:center; gap:7px;
+           padding:8px 10px; border-radius:10px; border:1px solid transparent; cursor:pointer; font:600 11.5px 'IBM Plex Sans';
            transition:background .18s, color .18s, box-shadow .18s, transform .18s; }
   .mmore.up { background:#e7f6ec; color:#0e7a3c; border-color:#cdebd8; }
   .mmore.dn { background:#fdeaef; color:#c0303a; border-color:#f6d1d9; }
   .mmore:hover { transform:translateY(-1px); box-shadow:0 8px 18px -10px rgba(15,27,23,.45); }
   .mmore.up:hover { background:var(--up); border-color:var(--up); color:#fff; }
   .mmore.dn:hover { background:var(--dn); border-color:var(--dn); color:#fff; }
-  .mmore svg { transition:transform .18s; }
-  .mmore:hover svg { transform:translateX(3px); }
+  .mmore svg { transition:transform .18s; } .mmore:hover svg { transform:translateX(3px); }
   .mmore:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  /* Pop-up: nền phía sau làm mờ (blur) + tối nhẹ; -webkit- cho Safari trên iPhone */
-  .modal { position:fixed; inset:0; z-index:50; display:flex; align-items:center;
-           justify-content:center; padding:16px; background:rgba(15,27,23,.28);
-           -webkit-backdrop-filter:blur(8px) saturate(120%); backdrop-filter:blur(8px) saturate(120%);
+
+  .rightcol { display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .alertcard { padding:16px 18px; display:flex; flex-direction:column; }
+  .acount { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; padding:0 8px;
+            border-radius:12px; background:#fdeaef; color:#c0303a; font:700 12px/1 'IBM Plex Mono'; }
+  .arow { display:flex; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .arow:last-child { border-bottom:0; }
+  .aicon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:14px; flex:0 0 auto; }
+  .alv { font:700 9px/1 'IBM Plex Sans'; letter-spacing:.06em; padding:3px 6px; border-radius:5px; }
+  .atime { font:400 10px/1 'IBM Plex Mono'; color:var(--faint); }
+  .atitle { font:600 13px/1.3 'IBM Plex Sans'; color:var(--ink); margin-top:6px; }
+  .adet { font:400 11px/1.3 'IBM Plex Sans'; color:var(--mut); margin-top:3px; }
+  .heatcard { padding:15px 18px; display:flex; flex-direction:column; }
+  .heatgrid { margin-top:12px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-rows:minmax(48px,1fr); gap:7px; flex:1; }
+  .heatgrid.c3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .htile { border-radius:10px; padding:8px 9px; display:flex; flex-direction:column; justify-content:space-between; gap:4px; }
+  .htile .hn { font:600 10px/1.1 'IBM Plex Sans'; color:inherit; }
+  .htile .js-p { font:600 12px/1 'IBM Plex Mono'; color:inherit !important; }
+
+  .week { padding:14px 18px; }
+  .legend { display:flex; align-items:center; gap:14px; }
+  .legend span { display:flex; align-items:center; gap:6px; font:500 11px/1 'IBM Plex Sans'; color:var(--mut); }
+  .legend i { width:7px; height:7px; border-radius:50%; display:inline-block; }
+  .weekgrid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-top:13px; }
+  .wday { display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .whead { display:flex; align-items:baseline; justify-content:space-between; padding:6px 11px; border-radius:9px; background:var(--bg); }
+  .whead b { font:700 12px/1 'IBM Plex Sans'; color:var(--ink); }
+  .whead span { font:500 11px/1 'IBM Plex Mono'; color:var(--faint); }
+  .whead.today { background:var(--accent); } .whead.today b { color:#fff; } .whead.today span { color:rgba(255,255,255,.82); }
+  .ev { display:flex; gap:8px; padding:8px 9px; border-radius:9px; background:var(--bg4); border:1px solid var(--line2); }
+  .ev i { width:7px; height:7px; border-radius:50%; margin-top:4px; flex:0 0 auto; }
+  .ev .t { font:600 10px/1 'IBM Plex Mono'; color:var(--mut); }
+  .ev .t em { font-style:normal; color:var(--faint); margin-left:5px; }
+  .ev .ti { font:500 11px/1.35 'IBM Plex Sans'; color:var(--ink2); margin-top:4px; text-wrap:pretty; }
+  .wmore { font:500 10.5px/1 'IBM Plex Sans'; color:var(--faint); padding-left:4px; }
+
+  /* ===== Cổ phiếu Việt Nam ===== */
+  .vngrid { display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:16px; }
+  .board { padding:16px 18px; display:flex; flex-direction:column; }
+  .link { font:500 11px/1 'IBM Plex Sans'; color:var(--accent); cursor:pointer; background:none; border:0; padding:0; }
+  .link:hover { color:#a5111d; }
+  .bgrid { display:grid; grid-template-columns:62px minmax(0,1fr) 60px 92px 74px 84px; gap:10px; align-items:center; }
+  .bhead { margin-top:14px; padding-bottom:9px; border-bottom:1px solid var(--line2); font:600 10px/1 'IBM Plex Sans';
+           letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
+  .brow { padding:9px 0; border-bottom:1px solid var(--line); flex:1; }
+  .brow:last-child { border-bottom:0; }
+  .brow .sym { font:600 13px/1 'IBM Plex Mono'; color:var(--ink); }
+  .brow .nm { font:400 11px/1.2 'IBM Plex Sans'; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .brow .js-v { font:500 13px/1 'IBM Plex Mono'; color:var(--ink); text-align:right; }
+  .brow .js-p { font:600 12px/1 'IBM Plex Mono'; text-align:right; }
+  .brow .kl { font:400 12px/1 'IBM Plex Mono'; color:var(--mut); text-align:right; }
+  .r { text-align:right; }
+  .vnright { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .box { padding:15px 18px; }
+  .bar3 { display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:13px; background:var(--bg3); }
+  .cnt3 { display:flex; justify-content:space-between; margin-top:10px; font:600 12px/1 'IBM Plex Mono'; }
+  .liqtop { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:10px; }
+  .liqv { font:600 22px/1 'IBM Plex Mono'; color:var(--ink); }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:34px; flex:0 0 auto; }
+  .bars i { width:5px; background:var(--accent); opacity:.55; border-radius:2px 2px 0 0; }
+  .bars i:last-child { opacity:.95; }
+  .split { display:flex; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid var(--line2); }
+  .split > div { flex:1; }
+  .split .k { font:400 10px/1 'IBM Plex Sans'; color:var(--mut); }
+  .split .v { font:600 12px/1 'IBM Plex Mono'; color:var(--ink); margin-top:4px; }
+  .kv2 { display:flex; justify-content:space-between; margin-top:10px; }
+  .kv2 .k, .fnet .k { font:400 11px/1 'IBM Plex Sans'; color:var(--mut); }
+  .kv2 .v { font:600 14px/1 'IBM Plex Mono'; margin-top:4px; }
+  .fnet { display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:10px; border-top:1px solid var(--line2); }
+  .fnet .v { font:600 14px/1 'IBM Plex Mono'; }
+  .newsstrip { padding:14px 18px; }
+  .ngrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:12px; }
+  .ncard { display:flex; flex-direction:column; gap:6px; padding:11px 13px; border-radius:12px; background:var(--bg4); border:1px solid var(--line2); }
+  .ncard:hover .nt { color:var(--accent); }
+  .ncard .meta { display:flex; align-items:center; gap:7px; font:400 10px/1 'IBM Plex Mono'; color:var(--faint); flex-wrap:wrap; }
+  .ncard .nt { font:600 12.5px/1.35 'IBM Plex Sans'; color:var(--ink2); text-wrap:pretty; }
+  .ncard .ns { font:400 11px/1.45 'IBM Plex Sans'; color:var(--mut); text-wrap:pretty;
+               display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+  /* ===== Vàng, dầu, crypto ===== */
+  .cmgrid { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; }
+  .cmleft { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .hero { background:var(--dark); border-radius:20px; padding:20px 24px; color:#fff; display:flex; flex-direction:column;
+          height:214px; position:relative; overflow:hidden; }
+  .hero .top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; position:relative; z-index:1; }
+  .hero .eyebrow { font:600 12px/1 'IBM Plex Sans'; color:var(--on-dark2); letter-spacing:.04em; }
+  .hero .hn { font:700 20px/1 'IBM Plex Sans'; margin-top:9px; } .hero .hn span { color:var(--on-dark2); font-weight:500; }
+  .hero .hv { display:flex; align-items:baseline; gap:12px; margin-top:11px; flex-wrap:wrap; }
+  .hero .js-v { font:600 34px/1 'IBM Plex Mono'; letter-spacing:-.02em; }
+  .hero .js-p { font:600 15px/1 'IBM Plex Mono'; } .hero .up { color:var(--up-l); } .hero .dn { color:var(--dn-l); }
+  .hero .stats { display:flex; gap:18px; }
+  .hero .stats div { text-align:right; } .hero .stats .k { font:400 10px/1 'IBM Plex Sans'; color:var(--on-dark2); }
+  .hero .stats .v { font:600 13px/1 'IBM Plex Mono'; margin-top:5px; white-space:nowrap; }
+  .hero svg { position:absolute; left:0; right:0; bottom:0; width:100%; height:58%; }
+  .ctable { padding:16px 18px; display:flex; flex-direction:column; flex:1; }
+  .cgrid { display:grid; grid-template-columns:minmax(0,1fr) 56px 108px 78px; gap:10px; align-items:center; }
+  .crow { padding:9px 0; border-bottom:1px solid var(--line); }
+  .crow:last-child { border-bottom:0; }
+  .crow .sym { font:600 13px/1 'IBM Plex Mono'; color:var(--ink); } .crow .nm { font:400 10px/1 'IBM Plex Sans'; color:var(--faint); margin-top:3px; }
+  .crow .js-v { font:500 13px/1 'IBM Plex Mono'; color:var(--ink); text-align:right; }
+  .crow .js-p { font:600 12px/1 'IBM Plex Mono'; text-align:right; }
+  .commods { padding:16px 18px; display:flex; flex-direction:column; }
+  .cogrid { flex:1; margin-top:12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:1fr; gap:11px; }
+  .co { border:1px solid var(--card-bd); border-radius:14px; padding:12px 13px; display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+  .co .r1 { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .co .nm { font:600 12px/1.1 'IBM Plex Sans'; color:var(--ink); }
+  .co .r1 .js-p { font:600 11px/1 'IBM Plex Mono'; white-space:nowrap; }
+  .co .unit { font:400 10px/1 'IBM Plex Sans'; color:var(--faint); margin-top:4px; }
+  .co .r3 { display:flex; align-items:flex-end; justify-content:space-between; gap:6px; margin-top:6px; }
+  .co .js-v { font:600 17px/1 'IBM Plex Mono'; color:var(--ink); }
+
+  /* ===== FX ===== */
+  .fxgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .fxc { background:#fff; border:1px solid var(--card-bd); border-radius:16px; padding:15px 16px; display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+  .fxc .r1 { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; }
+  .fxc .pair { font:700 15px/1 'IBM Plex Mono'; color:var(--ink); } .fxc .nm { font:400 11px/1 'IBM Plex Sans'; color:var(--faint); margin-top:4px; }
+  .fxc .r1 .js-p { font:600 12px/1 'IBM Plex Mono'; white-space:nowrap; }
+  .fxc .r2 { display:flex; align-items:flex-end; justify-content:space-between; gap:6px; margin-top:10px; }
+  .fxc .r2 .js-v { font:600 21px/1 'IBM Plex Mono'; color:var(--ink); letter-spacing:-.01em; }
+  .fxc .r3 { display:flex; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid var(--line); }
+  .fxc .r3 > div { flex:1; min-width:0; } .fxc .r3 .k { font:400 9px/1 'IBM Plex Sans'; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
+  .fxc .r3 .v { font:600 13px/1 'IBM Plex Mono'; margin-top:5px; }
+  /* Dovish / Hawkish */
+  .tonecard { padding:14px 18px; }
+  .tonebar { display:flex; height:22px; border-radius:8px; overflow:hidden; border:1px solid var(--card-bd); margin-top:10px; }
+  .tseg { display:flex; align-items:center; justify-content:center; font:700 10.5px 'IBM Plex Mono'; white-space:nowrap; overflow:hidden; }
+  .tseg.d { background:#2f6fd8; color:#eaf2ff; } .tseg.n { background:#e7ebe4; color:var(--mut); } .tseg.h { background:#d05a48; color:#fff2ee; }
+  .tscale { position:relative; height:7px; border-radius:4px; margin-top:9px; background:linear-gradient(90deg,#2f6fd8 0%,#e7ebe4 50%,#d05a48 100%); }
+  .tneedle { position:absolute; top:-4px; width:2px; height:15px; background:var(--ink); box-shadow:0 0 4px rgba(15,27,23,.5); }
+  .tmeta { display:flex; justify-content:space-between; color:var(--faint); font:400 10px 'IBM Plex Sans'; margin-top:3px; }
+  .tverdict { font:700 12px 'IBM Plex Sans'; padding:4px 12px; border-radius:16px; }
+  .tverdict.hawk { background:#fdeaef; color:#c0303a; } .tverdict.dove { background:#e4edfb; color:#2456a8; } .tverdict.bal { background:var(--bg3); color:var(--tab); }
+
+  .srcstrip { padding:4px 28px 18px; color:var(--faint); font:400 11px/1.6 'IBM Plex Sans'; }
+  .srcstrip a { color:var(--accent); }
+
+  /* ===== Pop-up bảng xếp hạng: nền phía sau làm mờ ===== */
+  .modal { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:16px;
+           background:rgba(15,27,23,.28); -webkit-backdrop-filter:blur(8px) saturate(120%); backdrop-filter:blur(8px) saturate(120%);
            animation:fadeIn .18s ease-out; }
   .modal[hidden] { display:none; }
   @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
   @keyframes popIn { from { opacity:0; transform:translateY(10px) scale(.97); } to { opacity:1; transform:none; } }
   @keyframes slideUp { from { transform:translateY(100%); } to { transform:none; } }
-  .mpanel { background:#fff; border:1px solid var(--card-bd); border-radius:16px; width:min(580px, 100%);
-            max-height:86vh; display:flex; flex-direction:column;
-            box-shadow:0 30px 70px -20px rgba(15,27,23,.5); animation:popIn .22s cubic-bezier(.2,.8,.2,1); }
-  @media (prefers-reduced-motion: reduce) { .modal, .mpanel { animation:none; } .mmore, .mmore svg { transition:none; } }
+  .mpanel { background:#fff; border:1px solid var(--card-bd); border-radius:16px; width:min(600px,100%); max-height:86vh;
+            display:flex; flex-direction:column; box-shadow:0 30px 70px -20px rgba(15,27,23,.5); animation:popIn .22s cubic-bezier(.2,.8,.2,1); }
   .mphead { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 16px 8px; }
   .mphead b { font:700 15px 'IBM Plex Sans'; flex:1; min-width:170px; }
-  .mclose { border:0; background:#f0f3ee; border-radius:8px; width:30px; height:30px;
-            cursor:pointer; font-size:14px; color:#4a5a53; }
-  .mpsub { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 16px 8px;
-           color:var(--faint); font:400 11px 'IBM Plex Sans'; }
-  .msort { border:1px solid var(--card-bd); background:#fff; border-radius:7px; cursor:pointer;
-           padding:3px 9px; font:600 11px 'IBM Plex Sans'; color:#4a5a53; }
+  .mphead .seg button { padding:6px 9px; flex:0 0 auto; }
+  .mclose { border:0; background:var(--bg3); border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--tab); }
+  .mpsub { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 16px 8px; color:var(--faint); font:400 11px 'IBM Plex Sans'; }
+  .msort { border:1px solid var(--card-bd); background:#fff; border-radius:7px; cursor:pointer; padding:4px 9px; font:600 11px 'IBM Plex Sans'; color:var(--tab); }
+  .mfilter { border:1px solid var(--card-bd); border-radius:7px; padding:4px 9px; font:400 12px 'IBM Plex Sans'; width:150px; outline:0; }
+  .mfilter:focus { border-color:var(--accent); }
   .mpbody { overflow-y:auto; padding:0 16px 14px; }
-  .mrank { flex:0 0 24px; color:var(--faint); font:500 11px 'IBM Plex Mono'; }
-  .mlist .mname { max-width:300px; }
-  @media (max-width:700px) { .modal { padding:0; align-items:flex-end; }
-    .mpanel { border-radius:16px 16px 0 0; max-height:92vh; animation:slideUp .26s cubic-bezier(.2,.8,.2,1); } }
-  .mrow { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f4f6f2; }
-  .mrow:last-child { border-bottom:0; }
-  .mkey { font:600 13px 'IBM Plex Mono'; color:var(--ink); }
-  .mname { font:400 10px 'IBM Plex Sans'; color:var(--faint); max-width:96px;
-           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .mval { font:500 11px 'IBM Plex Mono'; color:var(--ink2); }
-  .mch { font:600 11px 'IBM Plex Mono'; min-width:52px; text-align:right; }
+  .mlist .mrow { padding:7px 0; }
+  .mlist .nm { max-width:340px; }
+  .mrank { flex:0 0 26px; color:var(--faint); font:500 11px 'IBM Plex Mono'; }
+  .rpanel { width:min(680px, 100%); }
+  .recapbody { white-space:pre-wrap; font:400 13px/1.6 'IBM Plex Sans'; color:var(--ink2); padding-bottom:6px; }
+  .recapbody b { color:var(--ink); } .recapbody i { color:var(--mut); }
+  .recapbody a { color:var(--ink2); text-decoration:underline; text-decoration-color:#cfd6cc; text-underline-offset:2px; }
+  .recapbody a:hover { color:var(--accent); }
+  .rfoot { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; padding:10px 16px 14px;
+           border-top:1px solid var(--line2); }
+  @media (prefers-reduced-motion: reduce) {
+    .modal, .mpanel, .tickertrack, .pulse, .mk.on { animation:none; } .mmore, .mmore svg { transition:none; } }
 
-  /* Alerts + heatmap */
-  .alertcard { padding:14px 16px; display:flex; flex-direction:column; }
-  .abadge { background:#fdeaef; color:#c0303a; font:700 11px 'IBM Plex Mono';
-            border-radius:10px; padding:2px 9px; }
-  .arow { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid #f4f6f2; }
-  .arow:last-child { border-bottom:0; }
-  .aicon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center;
-           justify-content:center; font-size:15px; flex:0 0 34px; }
-  .albl { font:700 8.5px 'IBM Plex Sans'; padding:2px 7px; border-radius:5px; letter-spacing:.04em; }
-  .atitle { font:600 13px 'IBM Plex Sans'; color:var(--ink2); margin-top:3px; line-height:1.3; }
-  .adet { font:400 11px 'IBM Plex Sans'; color:var(--mut); margin-top:2px; line-height:1.4; }
-  .heatcard { padding:14px 16px; }
-  .heatgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:10px; }
-  .htile { border-radius:9px; padding:8px 9px; }
-  .htile .hn { font:600 10px 'IBM Plex Sans'; }
-  .htile .hv { font:600 11px 'IBM Plex Mono'; margin-top:2px; }
-
-  /* Tone (Dovish/Hawkish) bottom card */
-  .tonecard { padding:14px 18px; }
-  .tonebar { display:flex; height:22px; border-radius:8px; overflow:hidden;
-             border:1px solid var(--card-bd); margin-top:10px; }
-  .tseg { display:flex; align-items:center; justify-content:center;
-          font:700 10.5px 'IBM Plex Mono'; white-space:nowrap; overflow:hidden; }
-  .tseg.d { background:#2f6fd8; color:#eaf2ff; }
-  .tseg.n { background:#e7ebe4; color:#6b7770; }
-  .tseg.h { background:#d05a48; color:#fff2ee; }
-  .tscale { position:relative; height:7px; border-radius:4px; margin-top:9px;
-            background:linear-gradient(90deg,#2f6fd8 0%,#e7ebe4 50%,#d05a48 100%); }
-  .tneedle { position:absolute; top:-4px; width:2px; height:15px; background:var(--ink);
-             box-shadow:0 0 4px rgba(15,27,23,.5); }
-  .tmeta { display:flex; justify-content:space-between; color:var(--faint);
-           font:400 10px 'IBM Plex Sans'; margin-top:3px; }
-  .tverdict { font:700 12px 'IBM Plex Sans'; padding:4px 12px; border-radius:16px; }
-  .tverdict.hawk { background:#fdeaef; color:#c0303a; }
-  .tverdict.dove { background:#e4edfb; color:#2456a8; }
-  .tverdict.bal { background:#f0f3ee; color:#4a5a53; }
-
-  .srcstrip { padding:10px 28px 18px; color:var(--faint); font:400 11px 'IBM Plex Sans'; }
-  .srcstrip a { color:var(--accent); text-decoration:none; }
-
-  /* Máy tính bảng: vùng tin & hàng dưới thành 2 cột */
-  @media (max-width:1150px) {
-    .zones, .lowergrid { grid-template-columns:repeat(2, minmax(0,1fr)); }
-    .cards6 { grid-template-columns:repeat(3,1fr); }
-    .toolbar { flex-wrap:wrap; height:auto; padding:10px 16px; row-gap:8px; }
+  /* ===== Responsive: full màn hình trên máy tính, gọn trên điện thoại ===== */
+  @media (max-width:1400px) {
+    .ovgrid { grid-template-columns:minmax(0,1fr) 268px; }
+    .rightcol { grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); }
   }
-  /* Điện thoại: mọi thứ 1 cột, thu gọn lề và thanh công cụ */
-  @media (max-width:700px) {
-    .zones, .lowergrid { grid-template-columns:minmax(0,1fr); gap:12px; }
-    .cards6 { grid-template-columns:repeat(2,1fr); gap:8px; padding:0 12px; }
-    .main { padding:12px 12px 20px; gap:12px; }
-    .pagehead { flex-wrap:wrap; padding:14px 12px 10px; gap:8px; }
-    .pagehead > div:first-child { flex:1 1 100%; }
-    .pagehead h1 { font-size:19px; }
-    .toolbar { gap:10px; padding:8px 12px; }
-    .search, .clock, #fsbtn { display:none; }
-    .icard .vl { font-size:16px; }
-    .srcstrip { padding:10px 12px 16px; }
+  @media (max-width:1100px) {
+    .cards6 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .vngrid, .cmgrid { grid-template-columns:minmax(0,1fr); }
+    .fxgrid, .ngrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .weekgrid { grid-template-columns:repeat(5,minmax(170px,1fr)); overflow-x:auto; padding-bottom:4px; }
+    .search input { width:110px; }
+  }
+  @media (max-width:820px) {
+    .toolbar { height:auto; flex-wrap:wrap; padding:8px 12px; gap:8px 10px; }
+    .brandname, .search, .clock { display:none; }
+    .tabs { order:3; flex:1 1 100%; overflow-x:auto; scrollbar-width:none; }
+    .tabs::-webkit-scrollbar { display:none; }
+    .pane { padding:12px 12px 18px; gap:12px; }
+    .head h1 { font-size:19px; }
+    .chip { height:30px; padding:0 10px; font-size:11px; }
+    .ovgrid, .rightcol { grid-template-columns:minmax(0,1fr); display:grid; }
+    .ngridpage, .lgrid { grid-template-columns:minmax(0,1fr); }
+    .frow { grid-template-columns:minmax(0,1fr) 90px 30px; } .frow .fd { grid-column:1 / -1; }
+    .mstats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .nside { position:static; order:-1; }
+    .tonecard .efftable { grid-template-columns:minmax(0,1fr); }
+    .movcol { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+    .movcol .seg { grid-column:1 / -1; }
+    .bgrid { grid-template-columns:54px minmax(0,1fr) 80px 66px; }
+    .bgrid .bspk, .bgrid .kl { display:none; }
+    .srcstrip { padding:4px 12px 16px; }
+  }
+  @media (max-width:560px) {
+    .cards6 { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .icard .js-v { font-size:16px; }
+    .movcol { grid-template-columns:minmax(0,1fr); }
+    .ngrid, .cogrid { grid-template-columns:minmax(0,1fr); }
+    .fxgrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .fxc { padding:12px; } .fxc .r2 .js-v { font-size:17px; } .fxc .r2 .spk { display:none; }
+    .hero { padding:16px 18px; height:200px; } .hero .js-v { font-size:28px; } .hero .stats { flex-direction:column; gap:8px; }
+    .cgrid { grid-template-columns:minmax(0,1fr) 44px 96px 66px; gap:8px; }
+    .heatgrid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .fields { grid-template-columns:minmax(0,1fr); }
+    .ftitle { font-size:13px; } .nlist { padding:4px 12px; } .nrow { gap:10px; }
+    .effrow { grid-template-columns:86px minmax(0,1fr); } .effrow .ew { grid-column:1 / -1; margin-top:-2px; }
+    .modal { padding:0; align-items:flex-end; }
+    .mpanel { border-radius:16px 16px 0 0; max-height:92vh; animation:slideUp .26s cubic-bezier(.2,.8,.2,1); }
+  }
+
+  /* ===== Điện thoại: kiểu ứng dụng — thanh điều hướng dưới đáy, vùng chạm ≥ 40px, chữ ≥ 10px ===== */
+  .bnav, .msearch { display:none; }
+  @media (max-width:820px) {
+    html { -webkit-text-size-adjust:100%; }
+    body { padding-bottom:calc(66px + env(safe-area-inset-bottom)); }
+    .toolbar { flex-wrap:nowrap; height:auto; padding:8px 12px; padding-top:calc(8px + env(safe-area-inset-top)); gap:10px; }
+    .tabs, #fsbtn { display:none; }
+    .brandname { display:block; font-size:15px; }
+    .logomark { width:32px; height:32px; }
+    .msearch { display:inline-flex; align-items:center; justify-content:center; width:40px; height:38px; font-size:18px; }
+    .liveinfo { height:32px; }
+    .bnav { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.96);
+            -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border-top:1px solid var(--card-bd);
+            padding:4px 4px calc(4px + env(safe-area-inset-bottom)); box-shadow:0 -6px 20px -14px rgba(15,27,23,.4); }
+    .bn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+          border:0; background:none; color:#6b7770; font:600 10.5px/1.1 'IBM Plex Sans'; padding:6px 2px; min-height:54px;
+          border-radius:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .bn span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .bn svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+              padding:3px 10px; box-sizing:content-box; border-radius:10px; transition:background .15s; }
+    .bn.on { color:var(--accent); }
+    .bn.on svg { background:var(--accent-a06); }
+    /* Vùng chạm */
+    .seg button { min-height:38px; font-size:12.5px; }
+    .mmore, .fmore { min-height:44px; font-size:13px; }
+    .btn { min-height:44px; font-size:13.5px; }
+    .btn.sm { min-height:36px; }
+    .fpill { padding:11px 13px; font-size:12.5px; }
+    .link { padding:10px 0; font-size:12.5px; }
+    .chip { height:34px; }
+    .mclose { width:40px; height:40px; }
+    .msort, .mfilter { min-height:38px; font-size:13px; }
+    /* iPhone tự phóng to khi ô nhập < 16px -> giữ 16px */
+    .oform input, .mfilter, .search input { font-size:16px; }
+    .oform input::placeholder { font-family:'IBM Plex Sans'; font-size:14px; }
+    .riskres { min-height:0; }
+    .riskres .empty { padding:14px 4px !important; }
+    .sidetag { font-size:10px; }
+    .mfilter { flex:1; min-width:140px; }
+    /* Chữ tối thiểu ~10px */
+    .tag { font-size:10px; } .badge-new { font-size:10px; padding:3px 6px; }
+    .fok, .fhi, .imp, .tmini, .alv { font-size:10.5px; }
+    .fxc .r3 .k, .split .k, .mstats .k { font-size:10.5px; }
+    .faint, .fsrc, .atime { font-size:11.5px; }
+    .fntitle { font-size:14px; } .ftitle { font-size:14.5px; }
+    .mrow .nm, .crow .nm { font-size:11px; }
+    /* Trang tin & lệnh: cột phụ trước, nội dung sau */
+    .head { gap:8px; }
+    .head h1 { font-size:20px; }
+  }
+  @media (max-width:560px) {
+    /* Tổng quan gọn hơn: 2 tin/lĩnh vực, 4 cảnh báo; lịch sự kiện xếp dọc */
+    .fcard a.fnews:nth-of-type(3) { display:none; }
+    .alertcard .arow:nth-child(n+5) { display:none; }
+    .weekgrid { grid-template-columns:minmax(0,1fr); overflow:visible; }
+    .wday { flex-direction:row; flex-wrap:wrap; gap:6px; }
+    .wday .whead { flex:1 1 100%; }
+    .wday .ev { flex:1 1 100%; }
+    .legend { display:none; }
+    .icard { padding:10px 11px; }
+    .cards6 .icard .r1 { flex-wrap:wrap; }
+    .hero .stats { flex-direction:row; gap:14px; }
+    .hero .stats div { text-align:left; }
+    .hero .top { flex-direction:column; gap:8px; }
+    .hero svg { height:45%; }
+    /* Nhật ký lệnh: mỗi lệnh một thẻ */
+    .jtable { min-width:0; }
+    .jtable thead { display:none; }
+    .jtable, .jtable tbody, .jtable tr, .jtable td { display:block; width:100%; }
+    .jtable tr { border:1px solid var(--line2); border-radius:12px; padding:8px 12px; margin-bottom:10px; background:#fff; }
+    .jtable tr.jempty { border:0; padding:0; }
+    .jtable td { border:0; padding:5px 0; display:flow-root; text-align:right; }
+    .jtable td::before { content:attr(data-l); float:left; margin-right:12px; font:600 10.5px/1.6 'IBM Plex Sans';
+                         letter-spacing:.04em; text-transform:uppercase; color:var(--faint); text-align:left; }
+    .jtable td[data-l=""]::before, .jtable tr.jempty td::before { content:none; }
+    .jtable td.jsym { font-size:15px; padding-top:2px; text-align:left; }
+    .jtable td.jid { display:none; }
+    .jtable td.jact { padding-top:8px; }
+    .jtable td.jact .btn { width:100%; }
+    .jal div { max-width:none; text-align:right; }
+    .mphead b { min-width:0; flex:1 1 60%; }
+    .mphead .seg { order:3; flex:1 1 100%; }
+    .mphead .seg button { flex:1; }
   }
 </style>
 </head>
 <body>
+{# ---------- Macro hiển thị (giá trị cập nhật trực tiếp qua /stream theo data-key) ---------- #}
+{% macro pct(chg, fmt='p') -%}
+<span class="js-p {{ 'fl' if chg is none else ('eq' if chg == 0 else ('up' if chg > 0 else 'dn')) }}" data-fmt="{{ fmt }}">{% if chg is none %}—{% else %}{% if fmt != 'p' %}{{ '▲' if chg >= 0 else '▼' }}{% endif %}{% if fmt == 'as' %} {% endif %}{{ '%+.2f'|format(chg) }}%{% endif %}</span>
+{%- endmacro %}
+{% macro val(v, dec, scale=none, pre='') -%}
+<span class="js-v" data-dec="{{ dec }}"{% if scale %} data-scale="{{ scale }}"{% endif %}{% if pre %} data-pre="{{ pre }}"{% endif %}>{{ pre }}{{ v }}</span>
+{%- endmacro %}
+{% macro spark(pts, chg, w=40, h=16, cls='') -%}
+{% if pts %}<svg class="spk {{ cls }}" viewBox="0 0 100 30" width="{{ w }}" height="{{ h }}" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ pts }}" fill="none" stroke="{{ '#c9a91a' if (chg or 0) == 0 else ('#12a150' if chg > 0 else '#e5484d') }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>{% else %}<span class="spk {{ cls }}" style="width:{{ w }}px;height:{{ h }}px"></span>{% endif %}
+{%- endmacro %}
+{% macro newscards(items, empty) -%}
+<div class="ngrid">
+  {% for n in items %}
+  <a class="ncard" href="{{ n.link }}" target="_blank" rel="noopener">
+    <div class="meta"><span class="tag" style="color:{{ n.tag_fg }};background:{{ n.tag_bg }}">{{ n.tag }}</span>{{ n.time }} · {{ n.source }}{% if n.verified %} · <span class="fok">✓ xác nhận</span>{% endif %}</div>
+    <div class="nt">{{ n.title }}</div>
+    {% if n.summary %}<div class="ns">{{ n.summary }}</div>{% endif %}
+  </a>
+  {% else %}<div class="empty">{{ empty }}</div>
+  {% endfor %}
+</div>
+{%- endmacro %}
+{% macro tonechip(t) -%}
+{% if t and t.net is not none %}<span class="tchip {{ t.verdict_class }}" title="{{ t.verdict }} · {{ t.confidence_label }}">{{ t.verdict_sym }} {{ 'Hawkish' if t.net >= 15 else ('Dovish' if t.net <= -15 else 'Cân bằng') }} <b class="mono">{{ '%+d'|format(t.net) }}</b></span>{% else %}<span class="tchip bal" title="Chưa có tín hiệu chính sách tiền tệ trong nhóm tin này">⚪ Trung lập</span>{% endif %}
+{%- endmacro %}
+{% macro effmini(effects) -%}
+{% set MK_SHORT = {'ck_tg': 'CK TG', 'ck_vn': 'CK VN', 'vang': 'Vàng', 'dau': 'Dầu', 'crypto': 'Crypto', 'usd': 'USD'} %}
+{% if effects %}<div class="effmini" title="Tác động ước tính theo cơ chế truyền dẫn chính sách tiền tệ">{% for e in effects %}<span class="{{ 'up' if e.dir > 0 else ('dn' if e.dir < 0 else 'fl') }}">{{ MK_SHORT[e.key] }} {{ e.arrow }}</span>{% endfor %}</div>{% endif %}
+{%- endmacro %}
+{% macro efftable(effects, note) -%}
+<div class="efftable">
+  {% for e in effects %}
+  <div class="effrow">
+    <span class="en">{{ e.name }}</span>
+    <span class="ea {{ 'up' if e.dir > 0 else ('dn' if e.dir < 0 else 'fl') }}">{{ e.arrow }} {{ e.label }}</span>
+    <span class="ew">{{ e.why }}</span>
+  </div>
+  {% endfor %}
+</div>
+<div class="faint" style="margin-top:8px">{{ note }}</div>
+{%- endmacro %}
+{% macro tonebar(t) -%}
+{% if t %}
+<div class="tonebar">
+  {% if t.pct_dovish > 0 %}<div class="tseg d" style="width:{{ t.pct_dovish }}%">{% if t.pct_dovish >= 12 %}🕊️ {{ t.pct_dovish }}%{% endif %}</div>{% endif %}
+  {% if t.pct_neutral > 0 %}<div class="tseg n" style="width:{{ t.pct_neutral }}%">{% if t.pct_neutral >= 14 %}Trung lập {{ t.pct_neutral }}%{% endif %}</div>{% endif %}
+  {% if t.pct_hawkish > 0 %}<div class="tseg h" style="width:{{ t.pct_hawkish }}%">{% if t.pct_hawkish >= 12 %}🦅 {{ t.pct_hawkish }}%{% endif %}</div>{% endif %}
+</div>
+{% if t.net is not none %}
+<div class="tscale"><div class="tneedle" style="left:{{ (t.net + 100) / 2 }}%"></div></div>
+<div class="tmeta"><span>← Nới lỏng (−100)</span><span>Cân bằng 0</span><span>Thắt chặt (+100) →</span></div>
+{% endif %}
+{% endif %}
+{%- endmacro %}
+{% macro mrow(m, rank=false) -%}
+<div class="mrow" data-key="{{ m.key }}">
+  {% if rank %}<span class="mrank"></span>{% endif %}
+  <div class="id"><span class="sym">{{ m.sym }}</span><span class="nm" title="{{ m.name }}">{{ m.name }}</span></div>
+  <div class="rt">
+    {% if not rank %}{{ spark(m.spark, m.chg) }}{% endif %}
+    <div class="px">{{ val(m.value, 2 if m.vn else m.dec, 0.001 if m.vn else none) }}{{ pct(m.chg) }}</div>
+  </div>
+</div>
+{%- endmacro %}
+
 <div class="frame">
 
   <!-- ===== Toolbar ===== -->
-  <div class="toolbar">
-    <div class="logo">
-      <div class="logomark">Ϝ</div>
-      <div class="logoname">FinWatch <span>Terminal</span></div>
-    </div>
+  <header class="toolbar">
+    <div class="brand"><div class="logomark">Ʌ</div><div class="brandname">Thị trường</div></div>
+    <nav class="tabs" role="tablist">
+      {% for slug, t in [('tong-quan', 'Tổng quan'), ('co-phieu', 'Cổ phiếu Việt Nam'), ('hang-hoa', 'Giá vàng, dầu, crypto'), ('fx', 'FX'), ('lenh', 'Đánh giá lệnh')] %}
+      <button class="tab" role="tab" data-tab="{{ slug }}" onclick="openPane('{{ slug }}', false)">{{ t }}</button>
+      {% endfor %}
+    </nav>
     <div class="spacer"></div>
-    <div class="search">⌕ <span>Tìm mã, chỉ số…</span></div>
-    <div class="clock mono" id="clock">--:--:--</div>
-    <div class="autoinfo" id="liveinfo" title="Giá trực tiếp (Binance, CNBC) đẩy liên tục; tin tức &amp; kiểm chứng đa nguồn tự động mỗi {{ interval_min }} phút.">
-      <span class="dot"></span><span id="livetxt">TRỰC TIẾP</span>
-      · giá <b class="mono" id="livets">--:--:--</b>
-      · tin <b class="mono" id="newsts">{{ last_run or '--:--' }}</b>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Tìm mã, chỉ số…" autocomplete="off" aria-label="Tìm mã, chỉ số"></label>
+    <span class="clock" id="clock">--:--:--</span>
+    <div class="liveinfo" id="liveinfo" title="Giá trực tiếp (SSI, Binance, CNBC, PNJ) đẩy liên tục; tin tức &amp; kiểm chứng đa nguồn tự động mỗi {{ interval_min }} phút.">
+      <span class="dot pulse"></span><span id="livetxt">TRỰC TIẾP</span><b class="mono" id="livets">--:--:--</b>
     </div>
+    <button class="btnicon msearch" onclick="openSearch()" title="Tìm mã, chỉ số" aria-label="Tìm mã, chỉ số">⌕</button>
     <button class="btnicon" id="fsbtn" onclick="toggleFullscreen()" title="Toàn màn hình (F11)">⛶</button>
-  </div>
+  </header>
 
   <!-- ===== Ticker ===== -->
-  <div class="ticker">
+  <div class="ticker" aria-label="Bảng giá chạy">
     <div class="tickertrack">
-      {% for dup in range(2) %}
-        {% for t in vm.ticker %}
-        <div class="titem" data-key="{{ t.key }}">
-          <span class="lb">{{ t.label }}</span>
-          <span class="vl">{{ t.value }}</span>
-          {% if t.chg is not none %}
-            <span class="ch {{ 'up' if t.chg >= 0 else 'dn' }}">{{ '▲' if t.chg >= 0 else '▼' }} {{ '%+.2f'|format(t.chg) }}%</span>
-          {% else %}<span class="ch fl">—</span>{% endif %}
-        </div>
-        {% endfor %}
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- ===== Header ===== -->
-  <div class="pagehead">
-    <div style="flex:1">
-      <h1>Trung tâm tin tức &amp; cảnh báo</h1>
-      <div class="datesub" id="dateline">&nbsp;</div>
-    </div>
-    <div class="chip ok"><span class="dot"></span> Dữ liệu đã kiểm chứng</div>
-    <div class="chip al" id="alertchip"><span class="dot"></span> Cảnh báo · {{ vm.alert_count }}</div>
-    {% if telegram.enabled %}
-      <div class="chip" style="background:#e2f4f7;color:#0e7490" title="{{ 'Lỗi gần nhất: ' ~ telegram.last_error if telegram.last_error else 'Gửi cảnh báo mới sau mỗi chu kỳ; bản tin lúc ' ~ (telegram.digest_hours or '—') ~ 'h' }}">
-        ✈ Telegram · BẬT{% if telegram.last_error %} ⚠{% endif %}</div>
-      <button class="btncollect" style="background:#0e7490" id="tgbtn" onclick="sendDigest()">✈ Gửi bản tin</button>
-    {% else %}
-      <div class="chip" style="background:#f0f3ee;color:#6b7770" title="Điền TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID vào file .env rồi khởi động lại">✈ Telegram · TẮT</div>
-    {% endif %}
-  </div>
-
-  <!-- ===== 6 index cards ===== -->
-  <div class="cards6">
-    {% for c in vm.cards %}
-    <div class="icard" data-key="{{ c.key }}">
-      <div class="r1">
-        <span class="nm"><span class="mk {{ 'on' if c.live }}" title="{{ 'Đang giao dịch' if c.live else 'Thị trường đóng cửa — giá phiên gần nhất' }}"></span>{{ c.name }}</span>
-        {% if c.chg is not none %}
-          <span class="ch {{ 'up' if c.chg >= 0 else 'dn' }}">{{ '▲' if c.chg >= 0 else '▼' }}{{ '%+.2f'|format(c.chg) }}%</span>
-        {% else %}<span class="ch fl">—</span>{% endif %}
+      {% for dup in range(2) %}{% for t in vm.ticker %}
+      <div class="titem" data-key="{{ t.key }}"{% if dup %} aria-hidden="true"{% endif %}>
+        <span class="lb">{{ t.label }}</span>{{ val(t.value, t.dec) }}{{ pct(t.chg, 'a') }}
       </div>
-      <div class="vl">{{ c.value }}</div>
+      {% endfor %}{% endfor %}
     </div>
-    {% endfor %}
   </div>
 
-  <!-- ===== Main ===== -->
-  <div class="main">
-
-    <!-- ===== Tin tức phân vùng theo nhóm ===== -->
-    <div class="zonehead">
-      <span class="cardtitle">Tin tức theo nhóm</span>
-      <span class="live"><span class="dot"></span><b>TỰ ĐỘNG</b></span>
-      <span style="margin-left:auto; font:400 11px 'IBM Plex Sans'; color:var(--faint)">Dịch &amp; tóm tắt tiếng Việt · mới nhất trước</span>
-    </div>
-    <div class="zones">
-      {% for g in vm.groups %}
-      <section class="zone" style="--zc:{{ g.fg }}; --zbg:{{ g.bg }}">
-        <div class="zhead">
-          <span class="zicon">{{ g.icon }}</span>
-          <span class="ztitle">{{ g.title }}</span>
-          <span class="zcount">{{ g.total }} tin</span>
-        </div>
-        <div class="zstats"><span class="ok">✓ {{ g.verified }} đã xác nhận</span> · <span class="hi">● {{ g.high }} ảnh hưởng cao</span></div>
-        {% for n in g['items'] %}
-        <a class="zitem {{ 'new' if n.is_new }}" href="{{ n.link }}" target="_blank" rel="noopener" title="{{ n.link }}">
-          <div class="zrow">
-            <span class="t">{{ n.time }}</span>
-            {% if n.is_new %}<span class="newbadge">MỚI</span>{% endif %}
-            <span class="nsrc">{{ n.source }}</span>
-            {% if n.verified %}<span class="nmini ok">✓ xác nhận</span>{% endif %}
-            {% if n.impact.level == 3 %}<span class="nmini hi">● ảnh hưởng cao</span>{% endif %}
-          </div>
-          <div class="zt">{{ n.title }}</div>
-          {% if n.summary %}<div class="zsum">{{ n.summary }}</div>{% endif %}
-        </a>
+  <!-- ================= TAB 0 · TỔNG QUAN ================= -->
+  <main class="pane" data-pane="tong-quan">
+    <div class="head">
+      <div><h1>Trung tâm tin tức &amp; cảnh báo</h1><div class="sub js-today">&nbsp;</div></div>
+      <div class="chips" data-refresh="chips0">
+        <button class="chip wh" onclick="openRecap()" title="Tóm tắt tin ngày hôm qua — tự gửi Telegram lúc {{ recap_hour if recap_hour is not none else '—' }}h mỗi sáng">🗞 Tóm tắt hôm qua</button>
+        <span class="chip {{ 'ok' if vm.vn_open else 'off' }}"><span class="dot"></span>{{ 'Đang giao dịch' if vm.vn_open else 'Ngoài giờ giao dịch' }}</span>
+        {% if telegram.enabled %}
+        <button class="chip al" id="tgbtn" onclick="sendDigest()" title="{{ 'Lỗi gần nhất: ' ~ telegram.last_error if telegram.last_error else 'Cảnh báo & tin mới tự gửi lên Telegram. Bấm để gửi bản tin ngay.' }}"><span class="dot pulse"></span>Chế độ cảnh báo · BẬT{% if telegram.last_error %} ⚠{% endif %}</button>
         {% else %}
-        <div class="zempty">Chưa có tin mới trong nhóm này — hệ thống đang thu thập tự động.</div>
-        {% endfor %}
-      </section>
+        <span class="chip off" title="Điền TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID vào file .env rồi khởi động lại"><span class="dot"></span>Cảnh báo Telegram · TẮT</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="cards6">
+      {% for c in vm.cards %}
+      <div class="icard" data-key="{{ c.key }}">
+        <div class="r1"><span class="nm"><span class="mk {{ 'on' if c.live }}"></span>{{ c.name }}</span>{{ pct(c.chg, 'a') }}</div>
+        {{ val(c.value, c.dec) }}
+      </div>
       {% endfor %}
     </div>
 
-    <!-- ===== Hàng dưới: Tăng | Giảm | Cảnh báo | Bản đồ nhiệt ===== -->
-    <div class="lowergrid">
-        {% for side in [('gainers', 'up', '▲ Tăng mạnh nhất', '#12a150', 'tăng'),
-                        ('losers', 'dn', '▼ Giảm mạnh nhất', '#e5484d', 'giảm')] %}
-        <div class="card movcard">
-          <div class="movhead">
-            <div class="movtitle {{ side[1] }}">{{ side[2] }}</div>
-            <div class="mtabs">{% for mg in vm.mover_groups %}<button class="mtab" data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}</div>
-          </div>
-          {% for mg in vm.mover_groups %}
-          <div class="mgroup" data-group="{{ mg.id }}">
-            {% for m in mg[side[0]] %}
-            <div class="mrow" data-key="{{ m.key }}"{% if m.vn %} data-vn="1"{% endif %}>
-              <div style="flex:1;min-width:0">
-                <div class="mkey">{{ m.sym }}</div>
-                <div class="mname" title="{{ m.name }}">{{ m.name }}</div>
-              </div>
-              {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="{{ side[3] }}" stroke-width="1.4" fill="none"/></svg>{% endif %}
-              <div style="text-align:right">
-                <div class="mval">{{ m.value }}</div>
-                <div class="mch {{ side[1] }}">{{ '%+.2f'|format(m.chg) }}%</div>
-              </div>
+    <div class="ovgrid">
+      <!-- Tin tức theo lĩnh vực (mỗi nhóm 3 tin mới nhất + "Xem thêm" sang trang của lĩnh vực) -->
+      <section class="card feed" data-refresh="fields">
+        <div class="cardhead">
+          <div class="l"><span class="ct lg">Tin tức theo lĩnh vực</span><span class="live"><span class="dot pulse"></span><b>TRỰC TIẾP</b></span></div>
+          <span class="faint">Dịch &amp; tóm tắt tiếng Việt · cập nhật <b class="mono">{{ last_run or '--:--' }}</b></span>
+        </div>
+        <div class="fields">
+          {% for f in vm.news_fields %}
+          <div class="fcard" style="--fc:{{ f.fg }};--fb:{{ f.bg }}">
+            <div class="fhead">
+              <span class="ficon">{{ f.icon }}</span>
+              <span class="fname">{{ f.title }}</span>
+              {{ tonechip(f.tone) }}
             </div>
-            {% else %}<div class="mempty">Không có mã {{ side[4] }} trong nhóm này.</div>
+            <div class="fstat">{{ f.total }} tin · <span class="fok">✓ {{ f.verified }} xác nhận</span> · <span class="fhi">● {{ f.high }} ảnh hưởng cao</span></div>
+            {% for n in f.top %}
+            <a class="fnews {{ 'new' if n.is_new }}" href="{{ n.link }}" target="_blank" rel="noopener">
+              <div class="fmeta"><span class="mono" style="font-size:11px;color:var(--tab);font-weight:600">{{ n.time }}</span>{% if n.is_new %}<span class="badge-new">MỚI</span>{% endif %}<span class="fsrc">{{ n.source }}</span>
+                {% if n.tone in ('hawkish', 'dovish') %}<span class="tmini {{ 'hawk' if n.tone == 'hawkish' else 'dove' }}">{{ n.tone_sym }} {{ n.tone_label }}</span>{% endif %}</div>
+              <div class="fntitle">{{ n.title }}</div>
+            </a>
+            {% else %}<div class="empty">Chưa có tin mới trong nhóm này.</div>
             {% endfor %}
+            <a class="fmore" href="#{{ f.slug }}" onclick="openPane('{{ f.slug }}'); return false;">
+              <span>Xem thêm tin {{ f.short }}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
           </div>
           {% endfor %}
-          <button class="mmore {{ side[1] }}" onclick="openMovers('{{ 'desc' if side[0] == 'gainers' else 'asc' }}')">
+        </div>
+      </section>
+
+      <!-- Tăng / Giảm mạnh nhất -->
+      <div class="movcol" data-refresh="movers">
+        <div class="seg" role="tablist" aria-label="Nhóm mã">
+          {% for mg in vm.mover_groups if mg.in_tabs %}<button data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}
+        </div>
+        {% for side in [('gainers', 'up', '▲', 'Tăng mạnh nhất', 'tăng', 'desc'), ('losers', 'dn', '▼', 'Giảm mạnh nhất', 'giảm', 'asc')] %}
+        <div class="card movcard">
+          <div class="movtitle"><span class="{{ side[1] }}" style="font-size:13px">{{ side[2] }}</span>{{ side[3] }}</div>
+          {% for mg in vm.mover_groups if mg.in_tabs %}
+          <div class="mgroup" data-group="{{ mg.id }}">
+            {% for m in mg[side[0]] %}{{ mrow(m) }}{% else %}<div class="empty">Không có mã {{ side[4] }} trong nhóm này.</div>{% endfor %}
+          </div>
+          {% endfor %}
+          <button class="mmore {{ side[1] }}" onclick="openMovers('{{ side[5] }}')">
             <span>Xem bảng xếp hạng đầy đủ</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
         {% endfor %}
-        <div class="card alertcard">
+      </div>
+
+      <!-- Cảnh báo + Heatmap ngành -->
+      <div class="rightcol">
+        <section class="card alertcard" data-refresh="alerts">
           <div class="cardhead">
-            <span style="font-size:15px">⚠</span>
-            <span class="cardtitle" style="font-size:15px">Cảnh báo quan trọng</span>
-            <span class="abadge" style="margin-left:auto">{{ vm.alert_count }}</span>
+            <div class="l"><span style="font-size:17px;color:var(--dn)">⚠</span><span class="ct">Cảnh báo quan trọng</span></div>
+            <span class="acount">{{ vm.alert_count }}</span>
           </div>
-          <div style="margin-top:6px">
+          <div style="margin-top:8px">
             {% for a in vm.alerts %}
             <div class="arow">
-              <div class="aicon" style="background:{{ '#fdeaef' if a.level=='KHẨN' else ('#fbf0df' if a.level=='CHÚ Ý' else '#eef1ec') }}">{{ a.icon }}</div>
+              <div class="aicon" style="background:{{ a.sev_bg }};color:{{ a.icon_col }}">{{ a.icon }}</div>
               <div style="flex:1;min-width:0">
-                <span class="albl" style="background:{{ '#fdeaef' if a.level=='KHẨN' else ('#fbf0df' if a.level=='CHÚ Ý' else '#eef1ec') }};color:{{ '#c0303a' if a.level=='KHẨN' else ('#b45309' if a.level=='CHÚ Ý' else '#4a5a53') }}">{{ a.level }}</span>
+                <div style="display:flex;align-items:center;gap:7px"><span class="alv" style="color:{{ a.sev_col }};background:{{ a.sev_bg }}">{{ a.level }}</span><span class="atime">{{ a.time }}</span></div>
                 <div class="atitle">{{ a.title }}</div>
                 <div class="adet">{{ a.detail }}</div>
               </div>
             </div>
-            {% else %}<div style="color:var(--faint);font-size:12px;margin-top:8px">Không có cảnh báo — mọi chỉ số đạt kiểm chứng.</div>
+            {% else %}<div class="empty">Không có cảnh báo — thị trường trong ngưỡng bình thường, số liệu đạt kiểm chứng.</div>
             {% endfor %}
           </div>
-        </div>
-        <div class="card heatcard">
-          <span class="cardtitle" style="font-size:15px">Bản đồ nhiệt biến động</span>
+        </section>
+        <section class="card heatcard">
+          <div class="cardhead"><span class="ct sm">Heatmap ngành</span><span class="faint">Chỉ số ngành HOSE</span></div>
           <div class="heatgrid">
-            {% for h in vm.heat %}
-            <div class="htile" data-key="{{ h.key }}" style="background:{{ 'rgba(18,161,80,%s)'|format(h.alpha) if (h.chg or 0) >= 0 else 'rgba(229,72,77,%s)'|format(h.alpha) }}">
-              <div class="hn" style="color:{{ '#0f1b17' if h.dark_text else '#ffffff' }}">{{ h.name }}</div>
-              <div class="hv" style="color:{{ '#0f1b17' if h.dark_text else '#ffffff' }}">{% if h.chg is not none %}{{ '%+.2f'|format(h.chg) }}%{% else %}—{% endif %}</div>
+            {% for s in vm.sectors %}
+            <div class="htile js-heat" data-key="{{ s.key }}" style="background:{{ s.bg }};color:{{ s.txt }}" title="{{ s.code }}">
+              <span class="hn">{{ s.name }}</span>{{ pct(s.chg) }}
             </div>
+            {% else %}<div class="empty" style="grid-column:1/-1">Đang tải chỉ số ngành…</div>
             {% endfor %}
           </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Lịch sự kiện dự kiến trong tuần -->
+    <section class="card week" data-refresh="week">
+      <div class="cardhead" style="flex-wrap:wrap">
+        <div class="l">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          <span class="ct md">Lịch sự kiện dự kiến trong tuần</span><span class="faint">giờ Việt Nam · ForexFactory</span>
         </div>
-    </div>
-
-    <!-- ===== Bottom: Dovish/Hawkish (thay lịch sự kiện — dữ liệu thật) ===== -->
-    {% if vm.tone %}
-    <div class="card tonecard">
-      <div class="cardhead">
-        <span style="font-size:15px">🦅</span>
-        <span class="cardtitle" style="font-size:15px">Chỉ số Dovish / Hawkish của dòng tin</span>
-        <span class="tverdict {{ vm.tone.verdict_class }}">{{ vm.tone.verdict_sym }} {{ vm.tone.verdict }}</span>
-        <span style="margin-left:auto; font:400 11px 'IBM Plex Sans'; color:var(--faint)">
-          {{ vm.tone.confidence_label }} · {{ vm.tone.n_signal_items }} tin có tín hiệu
-          {% if vm.tone.net is not none %} · net <b class="mono" style="color:var(--ink)">{{ '%+d'|format(vm.tone.net) }}</b>/±100{% endif %}
-        </span>
+        <div class="legend"><span><i style="background:var(--dn)"></i>Cao</span><span><i style="background:var(--mid)"></i>Trung bình</span></div>
       </div>
-      <div class="tonebar">
-        {% if vm.tone.pct_dovish > 0 %}<div class="tseg d" style="width:{{ vm.tone.pct_dovish }}%">{% if vm.tone.pct_dovish >= 12 %}🕊️ {{ vm.tone.pct_dovish }}%{% endif %}</div>{% endif %}
-        {% if vm.tone.pct_neutral > 0 %}<div class="tseg n" style="width:{{ vm.tone.pct_neutral }}%">{% if vm.tone.pct_neutral >= 14 %}Trung lập {{ vm.tone.pct_neutral }}%{% endif %}</div>{% endif %}
-        {% if vm.tone.pct_hawkish > 0 %}<div class="tseg h" style="width:{{ vm.tone.pct_hawkish }}%">{% if vm.tone.pct_hawkish >= 12 %}🦅 {{ vm.tone.pct_hawkish }}%{% endif %}</div>{% endif %}
-      </div>
-      {% if vm.tone.net is not none %}
-      <div class="tscale"><div class="tneedle" style="left:{{ (vm.tone.net + 100) / 2 }}%"></div></div>
-      <div class="tmeta"><span>← Nới lỏng (−100)</span><span>Cân bằng 0</span><span>Thắt chặt (+100) →</span></div>
-      {% endif %}
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- ===== Pop-up "Xem thêm": bảng xếp hạng đầy đủ của nhóm đang chọn ===== -->
-  <div id="mmodal" class="modal" hidden onclick="if (event.target === this) closeMovers()">
-    <div class="mpanel" role="dialog" aria-modal="true" aria-labelledby="mmtitle">
-      <div class="mphead">
-        <b id="mmtitle">Bảng xếp hạng</b>
-        <div class="mtabs">{% for mg in vm.mover_groups %}<button class="mtab" data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}</div>
-        <button class="mclose" onclick="closeMovers()" aria-label="Đóng">✕</button>
-      </div>
-      <div class="mpsub">
-        <button class="msort" id="msortbtn" onclick="toggleSort()">↓ Tăng mạnh trước</button>
-        <span id="mmcount"></span><span>· % thay đổi trong phiên, cập nhật trực tiếp</span>
-      </div>
-      <div id="mlists" class="mpbody">
-        {% for mg in vm.mover_groups %}
-        <div class="mlist" data-group="{{ mg.id }}" data-label="{{ mg.label }}">
-          {% for m in mg['all'] %}
-          <div class="mrow" data-key="{{ m.key }}"{% if m.vn %} data-vn="1"{% endif %}>
-            <span class="mrank"></span>
-            <div style="flex:1;min-width:0">
-              <div class="mkey">{{ m.sym }}</div>
-              <div class="mname" title="{{ m.name }}">{{ m.name }}</div>
-            </div>
-            {% if m.spark %}<svg width="40" height="16" viewBox="0 0 40 16" fill="none"><polyline points="{{ m.spark }}" stroke="#93a099" stroke-width="1.4" fill="none"/></svg>{% endif %}
-            <div style="text-align:right">
-              <div class="mval">{{ m.value }}</div>
-              <div class="mch {{ 'fl' if m.chg is none else ('up' if m.chg >= 0 else 'dn') }}">{% if m.chg is not none %}{{ '%+.2f'|format(m.chg) }}%{% else %}—{% endif %}</div>
-            </div>
+      <div class="weekgrid">
+        {% for d in vm.week %}
+        <div class="wday">
+          <div class="whead {{ 'today' if d.today }}"><b>{{ d.day }}</b><span>{{ d.date }}</span></div>
+          {% for e in d.events %}
+          <div class="ev" title="{{ e.orig }}{% if e.detail %} · {{ e.detail }}{% endif %}">
+            <i style="background:{{ e.dot }}"></i>
+            <div style="min-width:0"><div class="t">{{ e.time }}<em>{{ e.country }}</em></div><div class="ti">{{ e.title }}</div></div>
           </div>
-          {% else %}<div class="mempty">Chưa có dữ liệu cho nhóm này.</div>
+          {% else %}<div class="wmore">{{ 'Không có sự kiện lớn' if vm.has_calendar else 'Đang tải lịch…' }}</div>
           {% endfor %}
+          {% if d.more > 0 %}<div class="wmore">+{{ d.more }} sự kiện khác</div>{% endif %}
         </div>
         {% endfor %}
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <!-- ===== Sources strip ===== -->
-  <div class="srcstrip">
-    <b style="color:var(--mut)">Nguồn số liệu:</b>
-    {% for sid, s in sources.items() %}<a href="{{ s.homepage }}" target="_blank">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+  <!-- ================= TAB 1 · CỔ PHIẾU VIỆT NAM ================= -->
+  <main class="pane" data-pane="co-phieu">
+    <div class="head">
+      <div><h1>Cổ phiếu Việt Nam</h1><div class="sub">Sàn HOSE · <span class="js-today"></span></div></div>
+      <div class="chips" data-refresh="chips1">
+        <span class="chip wh mono" title="Số mã tăng / đứng giá / giảm trên HOSE"><span class="up">{{ vm.breadth.up }} ↑</span><span style="color:var(--flat)">{{ vm.breadth.flat }} —</span><span class="dn">{{ vm.breadth.down }} ↓</span></span>
+        <span class="chip {{ 'ok' if vm.vn_open else 'off' }}"><span class="dot"></span>{{ 'Đang giao dịch' if vm.vn_open else 'Ngoài giờ giao dịch' }}</span>
+      </div>
+    </div>
+    <div class="vngrid">
+      <section class="card board" data-refresh="board">
+        <div class="cardhead"><span class="ct">Bảng giá cổ phiếu · HOSE</span><button class="link" onclick="openMovers('desc', 'HOSE')">Xem tất cả →</button></div>
+        <div class="faint" style="margin-top:6px">{{ vm.board|length }} mã có giá trị khớp lệnh lớn nhất phiên · giá nghìn đồng</div>
+        <div class="bgrid bhead"><span>Mã</span><span>Tên</span><span class="bspk"></span><span class="r">Giá</span><span class="r">+/-</span><span class="r kl">KL</span></div>
+        <div style="display:flex;flex-direction:column;flex:1">
+          {% for m in vm.board %}
+          <div class="bgrid brow" data-key="{{ m.key }}">
+            <span class="sym">{{ m.sym }}</span><span class="nm" title="{{ m.name }}">{{ m.name }}</span>
+            {{ spark(m.spark, m.chg, 52, 20, 'bspk') }}
+            {{ val(m.value, 2, 0.001) }}{{ pct(m.chg) }}<span class="kl">{{ m.vol_str }}</span>
+          </div>
+          {% else %}<div class="empty">Đang tải bảng giá HOSE…</div>
+          {% endfor %}
+        </div>
+      </section>
+      <div class="vnright" data-refresh="vnright">
+        <section class="card box">
+          <span class="ct sm">Độ rộng thị trường</span>
+          <div class="bar3"><div style="width:{{ vm.breadth.upPct }};background:var(--up)"></div><div style="width:{{ vm.breadth.flatPct }};background:#c9b23a"></div><div style="width:{{ vm.breadth.downPct }};background:var(--dn)"></div></div>
+          <div class="cnt3"><span class="up">{{ vm.breadth.up }} tăng</span><span style="color:var(--flat)">{{ vm.breadth.flat }} đứng</span><span class="dn">{{ vm.breadth.down }} giảm</span></div>
+        </section>
+        <section class="card box">
+          <div class="cardhead" style="align-items:baseline"><span class="ct sm">Thanh khoản phiên</span>
+            {% if vm.liquidity.delta %}<span class="mono {{ 'up' if vm.liquidity.delta_up else 'dn' }}" style="font-size:11px;font-weight:600">{{ vm.liquidity.delta }}</span>{% endif %}</div>
+          <div class="liqtop">
+            <div><div class="liqv">{{ vm.liquidity.total }}</div>
+              <div class="faint" style="margin-top:5px">{{ vm.liquidity.vol }} · TB{{ vm.liquidity.n_avg }}: {{ vm.liquidity.avg }}</div></div>
+            <div class="bars" title="Khối lượng khớp lệnh các phiên gần nhất (cột cuối = phiên hiện tại)">{% for h in vm.liquidity.bars %}<i style="height:{{ [h, 4]|max }}%"></i>{% endfor %}</div>
+          </div>
+          <div class="split">{% for s in vm.liquidity.split %}<div><div class="k">{{ s.name }} · {{ s.pct }}</div><div class="v">{{ s.val }}</div></div>{% endfor %}</div>
+        </section>
+        <section class="card box">
+          <div class="cardhead"><span class="ct sm">Dòng tiền chủ động</span><span class="faint" title="Khối lượng mua/bán chủ động × giá khớp trung bình của từng mã HOSE">HOSE · ước tính</span></div>
+          <div class="bar3"><div style="width:{{ vm.flow.buyPct }};background:var(--up)"></div><div style="width:{{ vm.flow.sellPct }};background:var(--dn)"></div></div>
+          <div class="kv2"><div><div class="k">Mua chủ động</div><div class="v up">{{ vm.flow.buy }}</div></div>
+            <div style="text-align:right"><div class="k">Bán chủ động</div><div class="v dn">{{ vm.flow.sell }}</div></div></div>
+          <div class="fnet"><span class="k">Khối ngoại ròng (HOSE)</span><span class="v {{ 'up' if vm.flow.fnet_up else 'dn' }}">{{ vm.flow.fnet }}</span></div>
+        </section>
+        <section class="card heatcard" style="flex:1">
+          <span class="ct sm">Heatmap ngành</span>
+          <div class="heatgrid c3">
+            {% for s in vm.sectors %}
+            <div class="htile js-heat" data-key="{{ s.key }}" style="background:{{ s.bg }};color:{{ s.txt }}" title="{{ s.code }}"><span class="hn">{{ s.name }}</span>{{ pct(s.chg) }}</div>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+    </div>
+    <section class="card newsstrip" data-refresh="news1">
+      <div class="cardhead" style="justify-content:flex-start"><span class="live"><span class="dot pulse"></span><b>TRỰC TIẾP</b></span><span class="ct md">Tin cổ phiếu Việt Nam</span>
+        <a class="link" style="margin-left:auto" href="#tin-viet-nam" onclick="openPane('tin-viet-nam'); return false;">Xem thêm tin →</a></div>
+      {{ newscards(vm.stock_news, 'Chưa có tin chứng khoán Việt Nam mới.') }}
+    </section>
+  </main>
+
+  <!-- ================= TAB 2 · VÀNG, DẦU, CRYPTO ================= -->
+  <main class="pane" data-pane="hang-hoa">
+    <div class="head">
+      <div><h1>Giá vàng, dầu &amp; tiền mã hóa</h1><div class="sub">Hàng hóa &amp; Crypto · <span class="js-today"></span></div></div>
+      <div class="chips"><span class="chip ok"><span class="dot"></span>Cập nhật 24/7</span></div>
+    </div>
+    <div class="cmgrid">
+      <div class="cmleft">
+        <section class="hero" data-key="BTC" data-refresh="hero">
+          <div class="top">
+            <div>
+              <div class="eyebrow">TIỀN MÃ HÓA · DẪN DẮT</div>
+              <div class="hn">Bitcoin <span>BTC</span></div>
+              <div class="hv">{{ val(vm.btc.value, vm.btc.dec, none, '$') }}{{ pct(vm.btc.chg, 'as') }}</div>
+            </div>
+            <div class="stats">
+              <div><div class="k">Vốn hóa</div><div class="v">{{ vm.btc.cap }}</div></div>
+              <div><div class="k">KL 24h</div><div class="v">{{ vm.btc.vol }}</div></div>
+            </div>
+          </div>
+          {% if vm.btc.line %}
+          <svg viewBox="0 0 700 180" preserveAspectRatio="none" aria-hidden="true">
+            <path d="{{ vm.btc.area }}" fill="{{ 'rgba(94,227,154,.1)' if (vm.btc.chg or 0) >= 0 else 'rgba(255,138,143,.1)' }}"/>
+            <path d="{{ vm.btc.line }}" fill="none" stroke="{{ '#5ee39a' if (vm.btc.chg or 0) >= 0 else '#ff8a8f' }}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+          </svg>
+          {% endif %}
+        </section>
+        <section class="card ctable" data-refresh="crypto">
+          <div class="cardhead"><span class="ct md">Tiền mã hóa</span><span class="faint">Binance · 24h</span></div>
+          <div class="cgrid bhead"><span>Đồng</span><span></span><span class="r">Giá</span><span class="r">24h</span></div>
+          {% for c in vm.crypto %}
+          <div class="cgrid crow" data-key="{{ c.key }}" title="Vốn hóa {{ c.cap }}">
+            <div style="min-width:0"><div class="sym">{{ c.sym }}</div><div class="nm">{{ c.name }}</div></div>
+            {{ spark(c.spark, c.chg, 48, 18) }}
+            {{ val(c.value, c.dec, none, '$') }}{{ pct(c.chg) }}
+          </div>
+          {% endfor %}
+        </section>
+      </div>
+      <section class="card commods" data-refresh="commod">
+        <div class="cardhead"><span class="ct md">Vàng, dầu &amp; hàng hóa</span><span class="faint">PNJ · CNBC</span></div>
+        <div class="cogrid">
+          {% for c in vm.commod %}
+          <div class="co" data-key="{{ c.key }}">
+            <div class="r1"><span class="nm"><span class="mk {{ 'on' if c.live }}"></span>{{ c.name }}</span>{{ pct(c.chg, 'a') }}</div>
+            <span class="unit">{{ c.unit }}</span>
+            <div class="r3">{{ val(c.value, c.dec) }}{{ spark(c.spark, c.chg, 54, 22) }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+    <section class="card newsstrip" data-refresh="news2">
+      <div class="cardhead" style="justify-content:flex-start"><span class="live"><span class="dot pulse"></span><b>TRỰC TIẾP</b></span><span class="ct md">Tin vàng, dầu &amp; crypto</span>
+        <span style="margin-left:auto;display:flex;gap:14px">
+          <a class="link" href="#tin-hang-hoa" onclick="openPane('tin-hang-hoa'); return false;">Tin vàng &amp; dầu →</a>
+          <a class="link" href="#tin-crypto" onclick="openPane('tin-crypto'); return false;">Tin crypto →</a></span></div>
+      {{ newscards(vm.commod_news, 'Chưa có tin hàng hóa / crypto mới.') }}
+    </section>
+  </main>
+
+  <!-- ================= TAB 3 · FX ================= -->
+  <main class="pane" data-pane="fx">
+    <div class="head">
+      <div><h1>Thị trường ngoại hối</h1><div class="sub">Tỷ giá &amp; cặp tiền tệ · <span class="js-today"></span></div></div>
+      <div class="chips"><span class="chip ok" title="Tỷ giá cặp tiền: CNBC · Mua/Bán: Vietcombank{% if vm.bank_ts %} (cập nhật {{ vm.bank_ts[11:16] }} {{ vm.bank_ts[8:10] }}/{{ vm.bank_ts[5:7] }}){% endif %}"><span class="dot"></span>Liên ngân hàng · Vietcombank</span></div>
+    </div>
+    <div class="fxgrid" data-refresh="fx">
+      {% for f in vm.fx %}
+      <div class="fxc" data-key="{{ f.key }}">
+        <div class="r1"><div><div class="pair">{{ f.pair }}</div><div class="nm">{{ f.name }}</div></div>{{ pct(f.chg, 'as') }}</div>
+        <div class="r2">{{ val(f.value, f.dec) }}{{ spark(f.spark, f.chg, 62, 26) }}</div>
+        <div class="r3" title="Giá Vietcombank (VND cho 1 {{ f.ccy }}): mua chuyển khoản / bán">
+          <div><div class="k">Mua vào · {{ f.ccy }}</div><div class="v up">{{ f.bid }}</div></div>
+          <div><div class="k">Bán ra · {{ f.ccy }}</div><div class="v dn">{{ f.ask }}</div></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if vm.tone %}
+    <section class="card tonecard" data-refresh="tone">
+      <div class="cardhead" style="flex-wrap:wrap">
+        <div class="l"><span style="font-size:15px">🦅</span><span class="ct">Chỉ số Dovish / Hawkish của dòng tin</span>
+          <span class="tverdict {{ vm.tone.verdict_class }}">{{ vm.tone.verdict_sym }} {{ vm.tone.verdict }}</span></div>
+        <span class="faint">{{ vm.tone.confidence_label }} · {{ vm.tone.n_signal_items }} tin có tín hiệu{% if vm.tone.net is not none %} · net <b class="mono" style="color:var(--ink)">{{ '%+d'|format(vm.tone.net) }}</b>/±100{% endif %}</span>
+      </div>
+      {{ tonebar(vm.tone) }}
+      <div class="ct sm" style="margin-top:14px">Tác động ước tính tới từng nhóm thị trường (toàn bộ dòng tin)</div>
+      {{ efftable(vm.tone_effects, 'Suy ra từ độ nghiêng Dovish/Hawkish theo cơ chế truyền dẫn chính sách tiền tệ — ước tính định tính, không phải dự báo giá hay khuyến nghị đầu tư.') }}
+    </section>
+    {% endif %}
+    <section class="card newsstrip" data-refresh="news3">
+      <div class="cardhead" style="justify-content:flex-start"><span class="live"><span class="dot pulse"></span><b>TRỰC TIẾP</b></span><span class="ct md">Tin ngoại hối &amp; chính sách tiền tệ</span></div>
+      {{ newscards(vm.fx_news, 'Chưa có tin ngoại hối / lãi suất mới.') }}
+    </section>
+  </main>
+
+  <!-- ================= TAB 4 · ĐÁNH GIÁ RỦI RO LỆNH ================= -->
+  <main class="pane" data-pane="lenh">
+    <div class="head">
+      <div><h1>Đánh giá rủi ro lệnh</h1>
+        <div class="sub">Theo bối cảnh cơ bản của thị trường · cổ phiếu Việt Nam, vàng/dầu/hàng hoá, crypto</div></div>
+      <div class="chips">
+        {% if telegram.enabled %}<span class="chip ok" title="Nhắn cho bot: /danhgia MUA FPT 58.2 SL 56 TP 62 KL 1000 · /vaolenh … · /lenhmo · /dong 12"><span class="dot"></span>Telegram: /danhgia · /vaolenh</span>
+        {% else %}<span class="chip off" title="Cấu hình TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID trong .env để nhập lệnh qua Telegram"><span class="dot"></span>Nhập lệnh qua Telegram · TẮT</span>{% endif %}
+      </div>
+    </div>
+    <div class="lgrid">
+      <div class="lleft">
+        <section class="card box">
+          <div class="cardhead"><span class="ct sm">Nhập lệnh</span><span class="faint">giá theo đơn vị hiển thị</span></div>
+          <form id="ordform" class="oform" autocomplete="off" onsubmit="evalOrder(false); return false;">
+            <label class="fl1">Tài sản
+              <input id="o-sym" list="assetlist" placeholder="FPT, HPG, SJC, XAU, WTI, BTC…" required>
+            </label>
+            <datalist id="assetlist">{% for a in assets %}<option value="{{ a.s }}">{{ a.n }}</option>{% endfor %}</datalist>
+            <div class="ainfo" id="o-info">Chọn mã để xem giá hiện tại.</div>
+            <div class="seg sidesel" role="radiogroup" aria-label="Chiều lệnh">
+              <button type="button" data-side="buy" class="on" onclick="setSide('buy')">▲ MUA</button>
+              <button type="button" data-side="sell" onclick="setSide('sell')">▼ BÁN</button>
+            </div>
+            <div class="ogrid">
+              <label>Giá vào <input id="o-entry" inputmode="decimal" placeholder="giá hiện tại"></label>
+              <label>Khối lượng <input id="o-qty" inputmode="decimal" placeholder="vd 1000"></label>
+              <label>Cắt lỗ <input id="o-stop" inputmode="decimal" placeholder="bắt buộc nên có"></label>
+              <label>Chốt lời <input id="o-target" inputmode="decimal" placeholder="mục tiêu"></label>
+            </div>
+            <label class="fl1">Ghi chú <input id="o-note" maxlength="300" placeholder="lý do vào lệnh (tuỳ chọn)"></label>
+            <div class="obtns">
+              <button type="submit" class="btn">Đánh giá rủi ro</button>
+              <button type="button" class="btn pri" onclick="evalOrder(true)">Đánh giá &amp; lưu lệnh</button>
+            </div>
+            <div class="faint" style="margin-top:8px">Cổ phiếu VN: giá theo nghìn đồng (58.2 = 58.200 ₫), khối lượng theo cổ phiếu, chỉ đánh giá lệnh MUA. Vàng SJC: triệu ₫/lượng. Crypto, vàng/dầu thế giới: USD.</div>
+          </form>
+        </section>
+        <section class="card box" data-refresh="riskset">
+          <div class="cardhead"><span class="ct sm">Cài đặt quản lý vốn</span><span class="faint">lưu trên máy này</span></div>
+          <form class="oform" onsubmit="saveRiskSettings(); return false;">
+            <label class="fl1">Quy mô vốn (₫) <input id="s-cap" inputmode="numeric" value="{{ '{:,.0f}'.format(journal.settings.capital) if journal.settings.capital else '' }}" placeholder="vd 500,000,000"></label>
+            <div class="ogrid">
+              <label>Rủi ro tối đa / lệnh (%) <input id="s-risk" inputmode="decimal" value="{{ journal.settings.max_risk_pct }}"></label>
+              <label>Tỷ trọng tối đa / mã (%) <input id="s-pos" inputmode="decimal" value="{{ journal.settings.max_pos_pct }}"></label>
+            </div>
+            <div class="obtns"><button type="submit" class="btn">Lưu cài đặt</button><span id="s-msg" class="faint"></span></div>
+          </form>
+        </section>
+      </div>
+      <section class="card box riskres" id="riskres">
+        <div class="empty" style="padding:30px 6px">Nhập lệnh và bấm <b>Đánh giá rủi ro</b> — hệ thống chấm điểm 0–100 theo xu hướng thị trường, chính sách tiền tệ (Dovish/Hawkish), tin tức liên quan, sự kiện kinh tế sắp tới, biến động giá, thanh khoản, khối ngoại và kiểm tra quản lý vốn.</div>
+      </section>
+    </div>
+
+    <section class="card box" data-refresh="journal">
+      <div class="cardhead" style="flex-wrap:wrap">
+        <span class="ct">Nhật ký lệnh</span>
+        <span class="faint">{{ journal.open|length }} lệnh mở · lãi/lỗ tạm tính <b class="mono {{ 'up' if journal.floating >= 0 else 'dn' }}">{{ '{:+,.0f}'.format(journal.floating) }} ₫</b> · đã chốt (20 lệnh gần nhất) <b class="mono {{ 'up' if journal.realized >= 0 else 'dn' }}">{{ '{:+,.0f}'.format(journal.realized) }} ₫</b> · rủi ro đánh giá lại mỗi 2 phút</span>
+      </div>
+      <div class="jwrap">
+        <table class="jtable">
+          <thead><tr><th>#</th><th>Vào lúc</th><th>Mã</th><th class="r">Giá vào</th><th class="r">Cắt lỗ / Chốt lời</th><th class="r">KL</th><th class="r">Giá hiện tại</th><th class="r">Lãi/lỗ</th><th>Rủi ro vào → nay</th><th>Cảnh báo</th><th></th></tr></thead>
+          <tbody>
+          {% for t in journal.open %}
+          <tr class="jrow" data-key="{{ t.key }}" data-entry="{{ t.entry }}" data-side="{{ t.side }}" data-qty="{{ t.qty or 0 }}" data-tovnd="{{ t.to_vnd }}">
+            <td class="mono jid" data-l="Lệnh">#{{ t.id }}</td>
+            <td class="mono faint" data-l="Vào lúc">{{ t.created_vn }}{% if t.source == 'telegram' %} ✈{% endif %}</td>
+            <td class="jsym" data-l=""><b class="mono">{{ t.symbol }}</b> <span class="sidetag {{ t.side }}">{{ 'MUA' if t.side == 'buy' else 'BÁN' }}</span>{% if t.note %}<div class="faint" title="{{ t.note }}">{{ t.note[:40] }}</div>{% endif %}</td>
+            <td class="r mono" data-l="Giá vào">{{ '{:,.{}f}'.format(t.entry, t.dec) }}</td>
+            <td class="r mono" data-l="Cắt lỗ / Chốt lời"><span class="dn">{{ '{:,.{}f}'.format(t.stop, t.dec) if t.stop else '—' }}</span> / <span class="up">{{ '{:,.{}f}'.format(t.target, t.dec) if t.target else '—' }}</span></td>
+            <td class="r mono" data-l="Khối lượng">{{ '{:,g}'.format(t.qty) if t.qty else '—' }}</td>
+            <td class="r mono" data-l="Giá hiện tại">{% if t.price is not none %}<span class="js-v" data-dec="{{ t.dec }}" data-scale="{{ t.scale }}">{{ '{:,.{}f}'.format(t.price, t.dec) }}</span>{% else %}—{% endif %}</td>
+            <td data-l="Lãi/lỗ" class="r mono js-pl {{ 'up' if (t.pnl.pct or 0) >= 0 else 'dn' }}">{% if t.pnl.pct is not none %}{{ '%+.2f'|format(t.pnl.pct) }}%{% if t.pnl.vnd is not none %}<div>{{ '{:+,.0f}'.format(t.pnl.vnd) }} ₫</div>{% endif %}{% else %}—{% endif %}</td>
+            <td data-l="Rủi ro vào → nay"><span class="rbadge {{ t.entry_class }}">{{ t.risk_entry }}</span> → <span class="rbadge {{ t.now_class }}">{{ t.risk_now }}</span></td>
+            <td class="jal" data-l="Cảnh báo">{% for al in t.alerts %}<div class="al-{{ 'hi' if al.level == 'KHẨN' else ('mid' if al.level == 'CHÚ Ý' else 'lo') }}">{{ al.text }}</div>{% else %}<span class="faint">—</span>{% endfor %}</td>
+            <td class="jact" data-l=""><button class="btn sm" onclick="closeTrade({{ t.id }}, '{{ t.symbol }}')">Đóng lệnh</button></td>
+          </tr>
+          {% else %}
+          <tr class="jempty"><td colspan="11" class="empty">Chưa có lệnh đang mở. Bấm "Đánh giá &amp; lưu lệnh" (hoặc /vaolenh trên Telegram) để ghi nhật ký và được theo dõi, cảnh báo.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if journal.closed %}
+      <div class="ct sm" style="margin-top:16px">Lệnh đã đóng</div>
+      <div class="jwrap">
+        <table class="jtable">
+          <thead><tr><th>#</th><th>Mã</th><th>Vào lúc</th><th>Đóng lúc</th><th class="r">Giá vào → đóng</th><th class="r">Lãi/lỗ</th><th>Rủi ro lúc vào</th></tr></thead>
+          <tbody>
+          {% for t in journal.closed %}
+          <tr><td class="mono jid" data-l="Lệnh">#{{ t.id }}</td><td class="jsym" data-l=""><b class="mono">{{ t.symbol }}</b> <span class="sidetag {{ t.side }}">{{ 'MUA' if t.side == 'buy' else 'BÁN' }}</span></td>
+            <td class="mono faint" data-l="Vào lúc">{{ t.created_vn }}</td><td class="mono faint" data-l="Đóng lúc">{{ t.closed_vn }}</td>
+            <td class="r mono" data-l="Giá vào → đóng">{{ '{:,.{}f}'.format(t.entry, t.dec) }} → {{ '{:,.{}f}'.format(t.close_price, t.dec) }}</td>
+            <td data-l="Lãi/lỗ" class="r mono {{ 'up' if (t.pnl.pct or 0) >= 0 else 'dn' }}">{{ '%+.2f'|format(t.pnl.pct) }}%{% if t.pnl.vnd is not none %} · {{ '{:+,.0f}'.format(t.pnl.vnd) }} ₫{% endif %}</td>
+            <td data-l="Rủi ro lúc vào"><span class="rbadge {{ t.entry_class }}">{{ t.risk_entry }}</span></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </section>
+    <script id="assetmeta" type="application/json">{{ assets|tojson }}</script>
+  </main>
+
+  <!-- ================= TRANG TIN THEO LĨNH VỰC (mở từ "Xem thêm" ở Tổng quan) ================= -->
+  {% for f in vm.news_fields %}
+  <main class="pane npage" data-pane="{{ f.slug }}" style="--fc:{{ f.fg }};--fb:{{ f.bg }}">
+    <div data-refresh="{{ f.slug }}" style="display:flex;flex-direction:column;gap:14px">
+      <div class="head">
+        <div>
+          <a class="back" href="#tong-quan" onclick="openPane('tong-quan'); return false;">← Tổng quan</a>
+          <h1><span class="ficon lg">{{ f.icon }}</span>{{ f.title }}</h1>
+          <div class="sub">{{ f.total }} tin · ✓ {{ f.verified }} đã xác nhận ≥2 nguồn · ● {{ f.high }} ảnh hưởng cao · mới nhất trước</div>
+        </div>
+        <nav class="fpills" aria-label="Lĩnh vực tin">
+          {% for g in vm.news_fields %}<a class="fpill {{ 'on' if g.id == f.id }}" style="--fc:{{ g.fg }};--fb:{{ g.bg }}" href="#{{ g.slug }}" onclick="openPane('{{ g.slug }}'); return false;">{{ g.icon }} {{ g.short|capitalize if g.id != 'vn' else 'CK Việt Nam' }}</a>{% endfor %}
+        </nav>
+      </div>
+      <div class="ngridpage">
+        <section class="card nlist">
+          {% for n in f['items'] %}
+          <a class="nrow {{ 'new' if n.is_new }}" href="{{ n.link }}" target="_blank" rel="noopener">
+            <div class="ftime"><span>{{ n.time }}</span>{% if n.is_new %}<span class="badge-new">MỚI</span>{% endif %}</div>
+            <div style="flex:1;min-width:0">
+              <div class="fmeta">
+                <span class="tag" style="color:{{ n.tag_fg }};background:{{ n.tag_bg }}">{{ n.tag }}</span><span class="fsrc">{{ n.source }}</span>
+                {% if n.verified %}<span class="fok">✓ {{ n.n_sources }} nguồn xác nhận</span>{% endif %}
+                <span class="imp imp{{ n.impact }}">Ảnh hưởng {{ n.impact_label|lower }}</span>
+              </div>
+              <div class="ftitle">{{ n.title }}</div>
+              {% if n.summary %}<div class="fsum">{{ n.summary }}</div>{% endif %}
+              {% if n.tone != 'neutral' %}
+              <div class="ntone">
+                <span class="tmini {{ 'hawk' if n.tone == 'hawkish' else ('dove' if n.tone == 'dovish' else 'bal') }}">{{ n.tone_sym }} {{ n.tone_label }}</span>
+                {% if n.signals %}<span class="faint">tín hiệu: {{ n.signals|join(', ') }}</span>{% endif %}
+                {{ effmini(n.effects) }}
+              </div>
+              {% endif %}
+            </div>
+          </a>
+          {% else %}<div class="empty">Chưa có tin trong lĩnh vực này — hệ thống đang thu thập tự động.</div>
+          {% endfor %}
+        </section>
+        <aside class="nside">
+          <section class="card box">
+            <div class="cardhead"><span class="ct sm">Dovish / Hawkish · {{ f.short }}</span>{{ tonechip(f.tone) }}</div>
+            {% if f.tone %}
+            <div class="faint" style="margin-top:8px">{{ f.tone.verdict }} · {{ f.tone.confidence_label }} · {{ f.tone.n_signal_items }}/{{ f.tone.n_items }} tin có tín hiệu</div>
+            {{ tonebar(f.tone) }}
+            {% if f.tone.top_hawkish_signals or f.tone.top_dovish_signals %}
+            <div class="faint" style="margin-top:8px">
+              {% if f.tone.top_hawkish_signals %}🦅 {{ f.tone.top_hawkish_signals|join(', ') }}{% endif %}
+              {% if f.tone.top_dovish_signals %}<br>🕊️ {{ f.tone.top_dovish_signals|join(', ') }}{% endif %}
+            </div>
+            {% endif %}
+            {% else %}<div class="empty">Chưa có tin.</div>{% endif %}
+          </section>
+          <section class="card box">
+            <span class="ct sm">Tác động tới từng nhóm thị trường</span>
+            {{ efftable(f.effects, 'Ước tính từ độ nghiêng Dovish/Hawkish của tin ' ~ f.short ~ ' theo cơ chế truyền dẫn chính sách tiền tệ — không phải dự báo giá hay khuyến nghị đầu tư.') }}
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+  {% endfor %}
+
+  <!-- ===== Nguồn ===== -->
+  <footer class="srcstrip">
+    <b style="color:var(--mut)">Giá trực tiếp:</b>
+    <a href="https://iboard.ssi.com.vn" target="_blank" rel="noopener">SSI iBoard</a> · <a href="https://www.binance.com" target="_blank" rel="noopener">Binance</a> ·
+    <a href="https://www.cnbc.com/markets" target="_blank" rel="noopener">CNBC</a> · <a href="https://www.pnj.com.vn" target="_blank" rel="noopener">PNJ (vàng SJC)</a> ·
+    <a href="https://www.vietcombank.com.vn" target="_blank" rel="noopener">Vietcombank</a> · <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a> ·
+    <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener">ForexFactory</a>
+    &nbsp;|&nbsp; <b style="color:var(--mut)">Kiểm chứng đa nguồn:</b>
+    {% for sid, s in sources.items() %}<a href="{{ s.homepage }}" target="_blank" rel="noopener">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
     &nbsp;|&nbsp; <b style="color:var(--mut)">Nguồn tin:</b>
-    {% for sid, s in news_sources.items() %}<a href="{{ s.homepage }}" target="_blank">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    {% for sid, s in news_sources.items() %}<a href="{{ s.homepage }}" target="_blank" rel="noopener">{{ s.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
     &nbsp;|&nbsp; dữ liệu tham khảo, không phải khuyến nghị đầu tư
+  </footer>
+</div>
+
+<!-- ===== Thanh điều hướng dưới đáy (chỉ hiện trên điện thoại) ===== -->
+<nav class="bnav" aria-label="Điều hướng chính">
+  <button class="bn" data-tab="tong-quan" onclick="openPane('tong-quan', false)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg><span>Tổng quan</span></button>
+  <button class="bn" data-tab="co-phieu" onclick="openPane('co-phieu', false)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>CK Việt Nam</span></button>
+  <button class="bn" data-tab="hang-hoa" onclick="openPane('hang-hoa', false)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span>Vàng · Crypto</span></button>
+  <button class="bn" data-tab="fx" onclick="openPane('fx', false)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg><span>FX</span></button>
+  <button class="bn" data-tab="lenh" onclick="openPane('lenh', false)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span>Đánh giá lệnh</span></button>
+</nav>
+
+<!-- ===== Pop-up xem trước "Tóm tắt tin hôm qua" (bản gửi Telegram lúc 7:00) ===== -->
+<div id="rmodal" class="modal" hidden onclick="if (event.target === this) closeRecap()">
+  <div class="mpanel rpanel" role="dialog" aria-modal="true" aria-labelledby="rmtitle">
+    <div class="mphead">
+      <b id="rmtitle">🗞 Tóm tắt tin hôm qua</b>
+      <button class="mclose" onclick="closeRecap()" aria-label="Đóng">✕</button>
+    </div>
+    <div class="mpsub" id="rmsub">Bản xem trước — nội dung giống tin nhắn Telegram</div>
+    <div class="mpbody"><div class="recapbody" id="rmbody">Đang tổng hợp…</div></div>
+    <div class="rfoot" id="rmfoot"></div>
+  </div>
+</div>
+
+<!-- ===== Pop-up bảng xếp hạng đầy đủ (nền phía sau làm mờ) ===== -->
+<div id="mmodal" class="modal" hidden onclick="if (event.target === this) closeMovers()">
+  <div class="mpanel" role="dialog" aria-modal="true" aria-labelledby="mmtitle">
+    <div class="mphead">
+      <b id="mmtitle">Bảng xếp hạng</b>
+      <div class="seg">{% for mg in vm.mover_groups %}<button data-group="{{ mg.id }}" onclick="setMoverGroup('{{ mg.id }}')">{{ mg.label }}</button>{% endfor %}</div>
+      <button class="mclose" onclick="closeMovers()" aria-label="Đóng">✕</button>
+    </div>
+    <div class="mpsub">
+      <button class="msort" id="msortbtn" onclick="toggleSort()">↓ Tăng mạnh trước</button>
+      <input class="mfilter" id="mq" type="search" placeholder="Lọc mã / tên…" autocomplete="off" aria-label="Lọc mã">
+      <span id="mmcount"></span><span>· % trong phiên, cập nhật trực tiếp</span>
+    </div>
+    <div class="mpbody" data-refresh="mlists">
+      {% for mg in vm.mover_groups %}
+      <div class="mlist" data-group="{{ mg.id }}" data-label="{{ mg.label }}">
+        {% for m in mg['all'] %}{{ mrow(m, true) }}{% else %}<div class="empty">Chưa có dữ liệu cho nhóm này.</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
 <script>
+const VN_TZ = 'Asia/Ho_Chi_Minh';
+const PANE_HASH = ['tong-quan', 'co-phieu', 'hang-hoa', 'fx', 'lenh'];
+// ===== Đồng hồ & ngày (giờ Việt Nam) =====
 function tick() {
-  const now = new Date();
-  document.getElementById('clock').textContent = now.toLocaleTimeString('vi-VN', {hour12:false});
+  const d = new Date();
+  const time = d.toLocaleTimeString('vi-VN', {hour12: false, timeZone: VN_TZ});
+  const wd = new Intl.DateTimeFormat('vi-VN', {weekday: 'long', timeZone: VN_TZ}).format(d);
+  const date = d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: VN_TZ});
+  const today = wd.charAt(0).toUpperCase() + wd.slice(1) + ', ' + date + ' · ' + time + ' (GMT+7)';
+  document.getElementById('clock').textContent = time;
+  document.querySelectorAll('.js-today').forEach(el => { el.textContent = today; });
 }
 tick(); setInterval(tick, 1000);
-function setDateline() {
-  document.getElementById('dateline').textContent =
-    new Date().toLocaleDateString('vi-VN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+// ===== Tab & trang tin theo lĩnh vực =====
+// 4 tab chính + 4 trang tin lĩnh vực (#tin-the-gioi, #tin-hang-hoa, #tin-crypto, #tin-viet-nam),
+// tất cả trong cùng một trang; đường dẫn # giúp nút Quay lại của trình duyệt hoạt động.
+const hasPane = n => !!n && !!document.querySelector(`.pane[data-pane="${n}"]`);
+let curPane = null;
+function showPane(name) {
+  if (!hasPane(name)) name = 'tong-quan';
+  curPane = name;
+  const main = PANE_HASH.includes(name) ? name : 'tong-quan';  // trang tin lĩnh vực thuộc nhánh Tổng quan
+  document.querySelectorAll('.tab, .bn').forEach(t => {
+    const on = t.dataset.tab === main;
+    t.classList.toggle('on', on); t.setAttribute('aria-selected', on);
+  });
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === name));
+  if (PANE_HASH.includes(name)) { try { localStorage.setItem('tab', name); } catch (e) {} }
 }
-setDateline();
+// push = true: tạo mục lịch sử mới (Quay lại về trang trước); false: thay mục hiện tại (đổi tab).
+function openPane(name, push = true) {
+  if (name === curPane) return;
+  showPane(name);
+  const url = '#' + curPane;
+  if (push) { history.pushState(null, '', url); window.scrollTo(0, 0); } else history.replaceState(null, '', url);
+}
+(function initPane() {
+  let n = location.hash.slice(1);
+  if (!hasPane(n)) {
+    try { n = localStorage.getItem('tab') || 'tong-quan'; } catch (e) { n = 'tong-quan'; }
+    if (/^\d$/.test(n)) n = PANE_HASH[+n];  // giá trị cũ (số thứ tự tab)
+  }
+  showPane(n);
+  history.replaceState(null, '', '#' + curPane);
+})();
+window.addEventListener('popstate', () => showPane(location.hash.slice(1)));
+
 async function sendDigest() {
   const b = document.getElementById('tgbtn');
-  b.disabled = true; b.textContent = '✈ Đang gửi…';
+  if (!confirm('Gửi bản tin thị trường lên Telegram ngay bây giờ?')) return;
+  b.disabled = true;
   try {
-    const r = await (await fetch('/notify/digest', {method:'POST'})).json();
+    const r = await (await fetch('/notify/digest', {method: 'POST'})).json();
     alert(r.ok ? 'Đã gửi bản tin lên Telegram.' : 'Gửi thất bại: ' + r.error);
-  } catch(e) { alert('Lỗi: ' + e); }
-  b.disabled = false; b.textContent = '✈ Gửi bản tin';
+  } catch (e) { alert('Lỗi: ' + e); }
+  b.disabled = false;
 }
 function toggleFullscreen() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
@@ -530,100 +1286,126 @@ document.addEventListener('fullscreenchange', () => {
   b.textContent = document.fullscreenElement ? '✕' : '⛶';
   b.title = document.fullscreenElement ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình (F11)';
 });
-// ===== Thời gian thực =====
-// Giá: server đẩy qua /stream (Server-Sent Events) ngay khi có số mới (~15 giây/lần).
-// Tin tức & cảnh báo: khi chu kỳ thu thập 10 phút xong, server đổi `rv` -> thay các vùng đó
-// tại chỗ. Không tải lại cả trang nên giữ nguyên vị trí cuộn và chế độ toàn màn hình.
-let es = null, lastSnap = null, lastRv = null, lastMsgAt = Date.now();
 
-function fmtPrice(v) {
-  if (v == null) return '—';
-  const a = Math.abs(v), d = a >= 1000 ? 0 : (a >= 10 ? 2 : 4);
-  return v.toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+// ===== Thời gian thực =====
+// Server đẩy giá qua /stream (Server-Sent Events): lần đầu toàn bộ, sau đó chỉ các mã vừa đổi.
+// Phần tử có data-key nhận giá mới vào .js-v / .js-p; ô heatmap (.js-heat) đổi màu nền.
+// Tin tức, cảnh báo, bảng giá… làm mới tại chỗ khi chu kỳ thu thập xong (rv đổi) và mỗi 2 phút.
+let es = null, lastRv = null, lastMsgAt = Date.now(), first = true;
+const allQuotes = {};
+
+function fmt(v, dec) {
+  return v == null || isNaN(v) ? '—' : v.toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+function pctText(chg, mode) {
+  if (chg == null) return '—';
+  const s = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+  if (mode === 'p') return s;
+  return (chg >= 0 ? '▲' : '▼') + (mode === 'as' ? ' ' : '') + s;
 }
 function flash(el, dir) {
   if (!el || !dir) return;
-  el.classList.remove('flash-up', 'flash-dn');
-  void el.offsetWidth;  // buộc trình duyệt chạy lại hiệu ứng
+  el.classList.remove('flash-up', 'flash-dn'); void el.offsetWidth;
   el.classList.add(dir > 0 ? 'flash-up' : 'flash-dn');
 }
-function signClass(el, chg) {
-  el.classList.remove('up', 'dn', 'fl');
-  el.classList.add(chg == null ? 'fl' : (chg >= 0 ? 'up' : 'dn'));
+function heat(el, chg) {
+  const t = Math.max(-3, Math.min(3, chg || 0)) / 3;
+  el.style.background = `rgba(${t >= 0 ? '18,161,80' : '229,72,77'},${(0.1 + 0.62 * Math.abs(t)).toFixed(2)})`;
+  el.style.color = Math.abs(t) > 0.5 ? '#ffffff' : '#0f1b17';
 }
-function applyQuotes(snap, animate) {
-  for (const [key, q] of Object.entries(snap.quotes || {})) {
-    const dir = animate ? q.dir : 0;
-    const pct = q.chg == null ? null : (q.chg >= 0 ? '+' : '') + q.chg.toFixed(2) + '%';
-    const arrow = q.chg == null ? '' : (q.chg >= 0 ? '▲' : '▼');
+function applyQuotes(quotes, animate) {
+  for (const [key, q] of Object.entries(quotes)) {
     document.querySelectorAll(`[data-key="${key}"]`).forEach(el => {
-      if (el.classList.contains('titem')) {
-        const v = el.querySelector('.vl'), c = el.querySelector('.ch');
-        v.textContent = fmtPrice(q.price); flash(v, dir);
-        c.textContent = pct ? `${arrow} ${pct}` : '—'; signClass(c, q.chg);
-      } else if (el.classList.contains('icard')) {
-        const v = el.querySelector('.vl'), c = el.querySelector('.ch'), mk = el.querySelector('.mk');
-        v.textContent = fmtPrice(q.price); flash(v, dir);
-        c.textContent = pct ? `${arrow}${pct}` : '—'; signClass(c, q.chg);
-        if (mk) {
-          mk.classList.toggle('on', !!q.live);
-          mk.title = q.live ? `Đang giao dịch · ${q.src}` : `Thị trường đóng cửa — giá phiên gần nhất · ${q.src}`;
-        }
-      } else if (el.classList.contains('mrow')) {
-        const v = el.querySelector('.mval'), c = el.querySelector('.mch');
-        // Cổ phiếu Việt Nam hiển thị theo nghìn đồng như bảng điện (vd 20,600 -> 20.60)
-        v.textContent = el.dataset.vn
-          ? (q.price / 1000).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})
-          : fmtPrice(q.price);
-        flash(v, dir);
-        c.textContent = pct || '—'; signClass(c, q.chg);
-      } else if (el.classList.contains('htile')) {
-        const a = q.chg == null ? 0 : Math.min(Math.abs(q.chg) / 2.5, 1) * 0.9;
-        el.style.background = (q.chg || 0) >= 0 ? `rgba(18,161,80,${a.toFixed(3)})` : `rgba(229,72,77,${a.toFixed(3)})`;
-        const col = a <= 0.5 ? '#0f1b17' : '#ffffff';
-        el.querySelector('.hn').style.color = col;
-        const hv = el.querySelector('.hv');
-        hv.style.color = col; hv.textContent = pct || '—';
-      }
+      el.querySelectorAll('.js-v').forEach(v => {
+        const sc = parseFloat(v.dataset.scale || '1');
+        v.textContent = (v.dataset.pre || '') + fmt(q.price * sc, +v.dataset.dec);
+        if (animate) flash(v, q.dir);
+      });
+      el.querySelectorAll('.js-p').forEach(p => {
+        p.textContent = pctText(q.chg, p.dataset.fmt);
+        p.classList.remove('up', 'dn', 'fl', 'eq');
+        p.classList.add(q.chg == null ? 'fl' : (q.chg === 0 ? 'eq' : (q.chg > 0 ? 'up' : 'dn')));
+      });
+      if (el.classList.contains('js-heat')) heat(el, q.chg);
+      if (el.classList.contains('jrow')) updatePL(el, q.price);
+      const mk = el.querySelector('.mk');
+      if (mk) mk.classList.toggle('on', !!q.live);
     });
   }
 }
 function setLive(ok, ts) {
   document.getElementById('liveinfo').classList.toggle('off', !ok);
-  document.getElementById('livetxt').textContent = ok ? 'TRỰC TIẾP' : 'MẤT KẾT NỐI · đang thử lại';
-  if (ts) document.getElementById('livets').textContent =
-    new Date(ts).toLocaleTimeString('vi-VN', {hour12: false});
+  document.getElementById('livetxt').textContent = ok ? 'TRỰC TIẾP' : 'MẤT KẾT NỐI';
+  if (ts) document.getElementById('livets').textContent = new Date(ts).toLocaleTimeString('vi-VN', {hour12: false, timeZone: VN_TZ});
 }
+let refreshing = false;
 async function refreshSections() {
+  if (refreshing) return;
+  refreshing = true;
   try {
     const html = await (await fetch('/', {cache: 'no-store'})).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    for (const sel of ['.zones', '.lowergrid', '.tonecard', '#alertchip', '#newsts', '#mlists']) {
-      const cur = document.querySelector(sel), fresh = doc.querySelector(sel);
-      if (cur && fresh) cur.replaceWith(fresh);
-    }
-    initMoverGroup();
-    if (lastSnap) applyQuotes(lastSnap, false);
-  } catch (e) { /* mất mạng tạm thời: lần báo sau sẽ thử lại */ }
+    document.querySelectorAll('[data-refresh]').forEach(cur => {
+      const fresh = doc.querySelector(`[data-refresh="${cur.dataset.refresh}"]`);
+      if (fresh) cur.replaceWith(document.importNode(fresh, true));
+    });
+    setMoverGroup(curGroup);
+    showPane(curPane);
+    applyQuotes(allQuotes, false);
+  } catch (e) { /* mất mạng tạm thời: lần sau thử lại */ }
+  refreshing = false;
 }
-// Tab nhóm của bảng Tăng/Giảm mạnh nhất (Thế giới | VN30 | HNX30), nhớ lựa chọn trên máy.
-let curGroup = 'world', sortDesc = true;
-// Pop-up "Xem thêm": bảng xếp hạng đầy đủ của nhóm đang chọn, sắp lại theo % mới nhất.
-function openMovers(dir) {
+setInterval(refreshSections, 120000);
+
+// ===== Tăng/Giảm mạnh nhất + pop-up bảng xếp hạng =====
+// cardGroup: nhóm hiển thị ở 2 thẻ Tổng quan (Thế giới | VN30 | HNX30);
+// curGroup: nhóm đang xem trong pop-up (thêm HOSE — toàn bộ mã sàn HOSE).
+let cardGroup = 'world', curGroup = 'world', sortDesc = true, filterText = '';
+const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+function setMoverGroup(g) {
+  if (!document.querySelector(`.mlist[data-group="${g}"]`)) g = 'world';
+  curGroup = g;
+  if (document.querySelector(`.mgroup[data-group="${g}"]`)) {
+    cardGroup = g;
+    try { localStorage.setItem('moverGroup', g); } catch (e) {}
+  }
+  document.querySelectorAll('.movcol .seg button').forEach(b => b.classList.toggle('on', b.dataset.group === cardGroup));
+  document.querySelectorAll('.mpanel .seg button').forEach(b => b.classList.toggle('on', b.dataset.group === curGroup));
+  document.querySelectorAll('.mgroup').forEach(d => d.classList.toggle('on', d.dataset.group === cardGroup));
+  renderMovers();
+}
+function openMovers(dir, group) {
   sortDesc = dir !== 'asc';
   document.getElementById('mmodal').hidden = false;
   document.body.style.overflow = 'hidden';
-  renderMovers();
+  setMoverGroup(group || cardGroup);
+}
+// Nút ⌕ trên điện thoại: mở bảng xếp hạng toàn sàn HOSE và đặt con trỏ vào ô lọc.
+function openSearch() {
+  openMovers('desc', 'HOSE');
+  setTimeout(() => document.getElementById('mq').focus(), 50);
 }
 function closeMovers() {
   document.getElementById('mmodal').hidden = true;
   document.body.style.overflow = '';
 }
 function toggleSort() { sortDesc = !sortDesc; renderMovers(); }
+function rowMatches(r) {
+  if (!filterText) return true;
+  return norm(r.querySelector('.sym').textContent + ' ' + r.querySelector('.nm').textContent).includes(filterText);
+}
 function renderMovers() {
   const modal = document.getElementById('mmodal');
   if (!modal || modal.hidden) return;
-  const pct = r => { const v = parseFloat(r.querySelector('.mch').textContent); return isNaN(v) ? null : v; };
+  // Đang lọc mà nhóm hiện tại không có mã khớp -> chuyển sang nhóm đầu tiên có mã khớp.
+  if (filterText) {
+    const cur = document.querySelector(`.mlist[data-group="${curGroup}"]`);
+    if (cur && ![...cur.querySelectorAll('.mrow')].some(rowMatches)) {
+      const other = [...document.querySelectorAll('.mlist')].find(l => [...l.querySelectorAll('.mrow')].some(rowMatches));
+      if (other) { setMoverGroup(other.dataset.group); return; }
+    }
+  }
+  const pct = r => { const v = parseFloat(r.querySelector('.js-p').textContent); return isNaN(v) ? null : v; };
   document.querySelectorAll('.mlist').forEach(list => {
     const on = list.dataset.group === curGroup;
     list.style.display = on ? '' : 'none';
@@ -636,37 +1418,206 @@ function renderMovers() {
       if (y === null) return -1;
       return sortDesc ? y - x : x - y;
     });
-    rows.forEach((r, i) => { r.querySelector('.mrank').textContent = i + 1; list.appendChild(r); });
-    document.getElementById('mmcount').textContent = rows.length + ' mã';
+    let n = 0;
+    rows.forEach(r => {
+      const show = rowMatches(r);
+      r.style.display = show ? '' : 'none';
+      if (show) r.querySelector('.mrank').textContent = ++n;
+      list.appendChild(r);
+    });
+    document.getElementById('mmcount').textContent = (filterText ? `${n}/${rows.length}` : rows.length) + ' mã';
   });
   document.getElementById('msortbtn').textContent = sortDesc ? '↓ Tăng mạnh trước' : '↑ Giảm mạnh trước';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMovers(); });
-function setMoverGroup(g) {
-  curGroup = g;
-  try { localStorage.setItem('moverGroup', g); } catch (e) {}
-  document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('on', b.dataset.group === g));
-  document.querySelectorAll('.mgroup').forEach(d => d.classList.toggle('on', d.dataset.group === g));
+function setFilter(text) {
+  filterText = norm(text.trim());
+  const mq = document.getElementById('mq'), q = document.getElementById('q');
+  if (mq.value !== text) mq.value = text;
+  if (q.value !== text) q.value = text;
   renderMovers();
 }
-function initMoverGroup() {
+// Ô tìm kiếm trên thanh công cụ: gõ mã/tên -> mở bảng xếp hạng (toàn bộ HOSE) và lọc theo từ khoá.
+document.getElementById('q').addEventListener('input', e => {
+  if (e.target.value.trim() && document.getElementById('mmodal').hidden) openMovers('desc', 'HOSE');
+  setFilter(e.target.value);
+});
+document.getElementById('mq').addEventListener('input', e => setFilter(e.target.value));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMovers(); closeRecap(); } });
+
+// ===== Tóm tắt tin hôm qua (xem trước + gửi Telegram) =====
+async function openRecap() {
+  const m = document.getElementById('rmodal'), body = document.getElementById('rmbody'), foot = document.getElementById('rmfoot');
+  m.hidden = false; document.body.style.overflow = 'hidden';
+  body.textContent = 'Đang tổng hợp tin ngày hôm qua…'; foot.innerHTML = '';
+  try {
+    const r = await (await fetch('/notify/recap/preview', {cache: 'no-store'})).json();
+    // Nội dung là HTML rút gọn của Telegram do server tạo (đã thoát ký tự) — chỉ có <b>, <i>, <a>.
+    body.innerHTML = r.html;
+    body.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    const when = r.hour != null ? `Tự gửi Telegram lúc ${r.hour}:00 mỗi sáng.` : 'Chưa bật gửi tự động (TELEGRAM_RECAP_HOUR).';
+    foot.innerHTML = r.telegram
+      ? `<span class="faint">${when}</span><button class="btn pri" id="rmsend" onclick="sendRecap()">✈ Gửi lên Telegram ngay</button>`
+      : `<span class="faint">${when} Telegram chưa cấu hình — điền TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID vào .env.</span>`;
+  } catch (e) { body.textContent = 'Không tải được bản tóm tắt: ' + e; }
+}
+function closeRecap() {
+  const m = document.getElementById('rmodal');
+  if (!m || m.hidden) return;
+  m.hidden = true; document.body.style.overflow = '';
+}
+async function sendRecap() {
+  const b = document.getElementById('rmsend');
+  if (!confirm('Gửi bản tóm tắt tin hôm qua lên Telegram ngay bây giờ?')) return;
+  b.disabled = true; b.textContent = '✈ Đang gửi…';
+  try {
+    const r = await (await fetch('/notify/recap', {method: 'POST'})).json();
+    b.textContent = r.ok ? '✓ Đã gửi' : '✈ Gửi lại';
+    if (!r.ok) alert('Gửi thất bại: ' + r.error);
+  } catch (e) { alert('Lỗi: ' + e); b.textContent = '✈ Gửi lại'; }
+  b.disabled = false;
+}
+(function initMoverGroup() {
   let g = 'world';
   try { g = localStorage.getItem('moverGroup') || 'world'; } catch (e) {}
-  if (!document.querySelector(`.mgroup[data-group="${g}"]`)) g = 'world';
-  setMoverGroup(g);
+  setMoverGroup(document.querySelector(`.mgroup[data-group="${g}"]`) ? g : 'world');
+})();
+
+// ===== Đánh giá rủi ro lệnh =====
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+let ASSETS = [];
+try { ASSETS = JSON.parse(document.getElementById('assetmeta').textContent); } catch (e) {}
+const ASSET_BY = {};
+ASSETS.forEach(a => { ASSET_BY[a.s.toUpperCase()] = a; ASSET_BY[a.k.toUpperCase()] = a; });
+let orderSide = 'buy', entryTouched = false;
+const $ = id => document.getElementById(id);
+function curAsset() { return ASSET_BY[($('o-sym').value || '').trim().toUpperCase()] || null; }
+function setSide(s) {
+  const a = curAsset();
+  if (a && a.c === 'vn') s = 'buy';  // thị trường cơ sở VN không bán khống
+  orderSide = s;
+  document.querySelectorAll('.sidesel button').forEach(b => b.classList.toggle('on', b.dataset.side === s));
 }
-initMoverGroup();
+function onAsset() {
+  const a = curAsset(), info = $('o-info');
+  const sell = document.querySelector('.sidesel button[data-side="sell"]');
+  sell.disabled = !!(a && a.c === 'vn');
+  if (!a) { info.textContent = 'Chọn mã để xem giá hiện tại.'; return; }
+  if (a.c === 'vn') setSide('buy');
+  const q = allQuotes[a.k];
+  const price = q ? q.price * a.sc : null;
+  info.innerHTML = `<b>${esc(a.s)}</b> · ${esc(a.n)}<br>Giá hiện tại: <b class="mono">${price == null ? '—' : fmt(price, a.d)}</b> ${esc(a.u)}`
+    + (q && q.chg != null ? ` <span class="${q.chg >= 0 ? 'up' : 'dn'} mono">${pctText(q.chg, 'p')}</span>` : '')
+    + (q && !q.live ? ' · <span class="faint">thị trường nghỉ</span>' : '')
+    + (a.c === 'vn' ? '<br><span class="faint">Lô chẵn 100 cp · chỉ đánh giá lệnh MUA</span>' : '');
+  if (!entryTouched && price != null) $('o-entry').value = price.toFixed(a.d);
+}
+$('o-sym').addEventListener('input', onAsset);
+$('o-sym').addEventListener('change', onAsset);
+$('o-entry').addEventListener('input', () => { entryTouched = !!$('o-entry').value; });
+
+// "1,000" / "1.000" -> 1000 (phân tách hàng nghìn); "0,5" -> 0.5 (dấu thập phân kiểu Việt).
+function qtyValue(s) {
+  s = (s || '').trim().replace(/\s/g, '');
+  return /^\d{1,3}([.,]\d{3})+$/.test(s) ? s.replace(/[.,]/g, '') : s.replace(',', '.');
+}
+async function postJSON(url, data) {
+  const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
+  return r.json();
+}
+async function evalOrder(save) {
+  const data = {symbol: $('o-sym').value.trim(), side: orderSide, entry: $('o-entry').value, stop: $('o-stop').value,
+                target: $('o-target').value, qty: qtyValue($('o-qty').value), note: $('o-note').value};
+  if (!data.symbol) { $('o-sym').focus(); return; }
+  const box = $('riskres');
+  box.innerHTML = '<div class="empty" style="padding:30px 6px">Đang đánh giá…</div>';
+  try {
+    const ev = await postJSON(save ? '/trades' : '/risk/evaluate', data);
+    renderRisk(ev, save);
+    if (save && ev.ok) refreshSections();
+  } catch (e) { box.innerHTML = `<div class="rerr">Lỗi kết nối: ${esc(e)}</div>`; }
+  if (window.innerWidth < 820) box.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function renderRisk(ev, saved) {
+  const box = $('riskres');
+  if (!ev.ok) { box.innerHTML = `<div class="rerr">❌ ${(ev.errors || ['Không đánh giá được']).map(esc).join('<br>')}</div>`; return; }
+  const d = ev.dec, f = v => v == null ? '—' : fmt(v, d), m = ev.money;
+  const vnd = v => v == null ? '—' : Math.round(v).toLocaleString('en-US') + ' ₫';
+  const moneyTxt = {ok: 'đạt', warn: 'cần chú ý', bad: 'vi phạm'}[ev.money_status];
+  const fx = ev.factors.map(x => `
+    <div class="frow ${x.kind === 'na' ? 'na' : ''}">
+      <span class="fn">${esc(x.name)}</span>
+      <span class="fb"><i class="k-${x.kind}" style="width:${x.score}%"></i></span>
+      <span class="fs k-${x.kind}">${x.kind === 'na' ? '—' : x.score}</span>
+      <span class="fd">${esc(x.detail)}</span>
+    </div>`).join('');
+  const CHK_ICON = {ok: '✅', warn: '⚠️', bad: '❌'};
+  const ck = m.checks.map(c => `<div class="chk"><span class="ic">${CHK_ICON[c.status]}</span><span><b>${esc(c.label)}</b> — ${esc(c.detail)}</span></div>`).join('');
+  const news = ev.news.length ? ev.news.map(n => `<a href="${esc(n.link)}" target="_blank" rel="noopener">${n.direction === 'Tích cực' ? '🟢' : (n.direction === 'Tiêu cực' ? '🔴' : '⚪')} ${esc(n.title)} <span class="faint">· ${esc(n.source)} · ảnh hưởng ${esc((n.impact || '').toLowerCase())}</span></a>`).join('')
+    : '<div class="faint">Không có tin riêng về mã này trong dòng tin hiện tại.</div>';
+  const evs = ev.events.length ? ev.events.map(e => `<div>${e.imp === 3 ? '🔴' : '🟠'} <span class="mono">${new Date(e.dt).toLocaleString('vi-VN', {timeZone: VN_TZ, weekday: 'short', hour: '2-digit', minute: '2-digit'})}</span> ${esc(e.country)} · ${esc(e.title)}</div>`).join('')
+    : '<div class="faint">Không có sự kiện quan trọng trong 48 giờ tới.</div>';
+  box.innerHTML = `
+    ${saved ? `<div class="chip ok" style="margin-bottom:12px;display:inline-flex"><span class="dot"></span>Đã lưu lệnh #${ev.id} vào nhật ký — hệ thống sẽ theo dõi &amp; cảnh báo</div>` : ''}
+    <div class="rhead">
+      <div class="ring ${ev.level_class}" style="--p:${ev.score}"><b>${ev.score}</b><span>/100</span></div>
+      <div style="flex:1;min-width:220px">
+        <div class="rlvl ${ev.level_class}">Rủi ro ${esc(ev.level)}</div>
+        <div class="rsub"><b>${ev.side_label} ${esc(ev.symbol)}</b> · ${esc(ev.name)} · giá hiện tại <b class="mono">${f(ev.price)}</b> ${esc(ev.unit)}${ev.price_live ? '' : ' (thị trường nghỉ)'}</div>
+        <div class="rsub">Vào <b class="mono">${f(ev.entry)}</b> · cắt lỗ <b class="mono dn">${f(ev.stop)}</b> · chốt lời <b class="mono up">${f(ev.target)}</b>${ev.qty ? ` · KL <b class="mono">${ev.qty.toLocaleString('en-US')}</b>` : ''}</div>
+        <div class="rsub">Rủi ro thị trường <b class="mono">${ev.market_score}</b> (${esc(ev.market_level)}) · quản lý vốn: <b>${moneyTxt}</b>${ev.top_risks.length ? ' · rủi ro chính: ' + ev.top_risks.map(esc).join(', ') : ''}</div>
+      </div>
+    </div>
+    <div class="rsec"><div class="ct sm">Yếu tố thị trường (0 = thuận lợi · 50 = trung tính · 100 = rủi ro cao)</div>${fx}</div>
+    <div class="rsec"><div class="ct sm">Quản lý vốn</div>
+      <div class="mstats">
+        <div><div class="k">Tỷ lệ lời/lỗ</div><div class="v">${m.rr == null ? '—' : '1:' + m.rr.toFixed(2)}</div></div>
+        <div><div class="k">Tiền rủi ro (chạm cắt lỗ)</div><div class="v dn">${vnd(m.risk_amt)}</div></div>
+        <div><div class="k">% vốn rủi ro · tỷ trọng</div><div class="v">${m.risk_pct == null ? '—' : m.risk_pct.toFixed(2) + '%'} · ${m.pos_pct == null ? '—' : m.pos_pct.toFixed(1) + '%'}</div></div>
+        <div><div class="k">KL tối đa theo cài đặt</div><div class="v">${m.max_qty == null ? '—' : Math.floor(m.max_qty).toLocaleString('en-US')}</div></div>
+      </div>
+      <div style="margin-top:6px">${ck}</div></div>
+    <div class="rsec"><div class="ct sm">Tin liên quan</div><div class="rlist">${news}</div></div>
+    <div class="rsec"><div class="ct sm">Sự kiện kinh tế 48 giờ tới</div><div class="rlist">${evs}</div></div>
+    <div class="faint" style="margin-top:14px">${esc(ev.disclaimer)} Đánh giá lúc ${new Date(ev.ts).toLocaleTimeString('vi-VN', {hour12: false, timeZone: VN_TZ})}.</div>`;
+}
+async function saveRiskSettings() {
+  const r = await postJSON('/risk/settings', {capital: $('s-cap').value, max_risk_pct: $('s-risk').value, max_pos_pct: $('s-pos').value});
+  const s = r.settings || {};
+  $('s-msg').textContent = r.ok ? `Đã lưu · vốn ${Math.round(s.capital).toLocaleString('en-US')} ₫` : 'Lưu thất bại';
+  if (r.ok) $('s-cap').value = Math.round(s.capital).toLocaleString('en-US');
+}
+async function closeTrade(id, sym) {
+  const p = prompt(`Đóng lệnh #${id} ${sym}.\nNhập giá đóng (bỏ trống = giá hiện tại):`, '');
+  if (p === null) return;
+  const r = await postJSON(`/trades/${id}/close`, {price: p.trim() || null});
+  if (!r.ok) { alert(r.error || 'Không đóng được lệnh'); return; }
+  refreshSections();
+}
+// Lãi/lỗ của lệnh đang mở theo giá trực tiếp (giá hiển thị = giá luồng × scale).
+function updatePL(row, rawPrice) {
+  const cell = row.querySelector('.js-pl'), v = row.querySelector('.js-v');
+  if (!cell || !v || rawPrice == null) return;
+  const price = rawPrice * parseFloat(v.dataset.scale || '1');
+  const entry = +row.dataset.entry, qty = +row.dataset.qty, s = row.dataset.side === 'buy' ? 1 : -1;
+  const pct = s * (price - entry) / entry * 100, money = s * (price - entry) * (+row.dataset.tovnd) * qty;
+  cell.innerHTML = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' + (qty ? `<div>${(money >= 0 ? '+' : '') + Math.round(money).toLocaleString('en-US')} ₫</div>` : '');
+  cell.classList.toggle('up', pct >= 0); cell.classList.toggle('dn', pct < 0);
+}
+
 function connect() {
   if (es) es.close();
+  first = true;
   es = new EventSource('/stream');
   es.onmessage = (ev) => {
     lastMsgAt = Date.now();
     const snap = JSON.parse(ev.data);
-    applyQuotes(snap, lastSnap !== null);
+    Object.assign(allQuotes, snap.quotes || {});
+    applyQuotes(snap.quotes || {}, !first);
+    first = false;
     renderMovers();  // pop-up đang mở thì xếp hạng lại theo giá mới
     setLive(true, snap.ts);
     if (lastRv !== null && snap.rv !== lastRv) refreshSections();
-    lastRv = snap.rv; lastSnap = snap;
+    lastRv = snap.rv;
   };
   es.onerror = () => setLive(false);  // EventSource tự kết nối lại
 }

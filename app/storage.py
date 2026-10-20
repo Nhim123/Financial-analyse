@@ -53,6 +53,16 @@ def _init(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS kv (
             k TEXT PRIMARY KEY, v TEXT
         );
+        -- Nhật ký lệnh của người dùng + kết quả đánh giá rủi ro (lúc vào lệnh và lần gần nhất).
+        CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT, source TEXT, key TEXT, symbol TEXT, name TEXT, cls TEXT, side TEXT,
+            entry REAL, stop REAL, target REAL, qty REAL, note TEXT,
+            status TEXT DEFAULT 'open', close_price REAL, closed_at TEXT,
+            risk_entry INTEGER, risk_now INTEGER, level_now TEXT, eval_json TEXT,
+            alerts TEXT DEFAULT '[]', alert_score INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status, created_at);
         CREATE INDEX IF NOT EXISTS idx_readings_key ON readings(key, ts);
         CREATE INDEX IF NOT EXISTS idx_verif_key ON verifications(key, ts);
         CREATE INDEX IF NOT EXISTS idx_news_run ON news(run_id);
@@ -195,6 +205,21 @@ def mark_sent(keys: List[str], ts: str) -> None:
             [(k, ts) for k in keys],
         )
         conn.commit()
+
+
+def db_query(sql: str, params: tuple = ()) -> List[dict]:
+    with _lock:
+        conn = _connect()
+        return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+
+def db_exec(sql: str, params: tuple = ()) -> int:
+    """Thực thi câu lệnh ghi; trả về lastrowid."""
+    with _lock:
+        conn = _connect()
+        cur = conn.execute(sql, params)
+        conn.commit()
+        return cur.lastrowid
 
 
 def kv_get(k: str) -> Optional[str]:

@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 import httpx
 
 from . import news_service, storage
+from .enrich import market_importance
 from .config import (ANOMALY_THRESHOLD_PCT, COLLECT_INTERVAL_SECONDS, DASHBOARD_URL, DIFF_THRESHOLD_PCT,
                      MOVE_ALERT_PCT, SPIKE_ALERT_PCT,
                      TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_DIGEST_HOURS,
@@ -418,11 +419,12 @@ def build_digest() -> Optional[str]:
                   f"🕊️ {tone['pct_dovish']}% · Trung lập {tone['pct_neutral']}% · 🦅 {tone['pct_hawkish']}%"
                   f" — {_esc(tone['confidence_label'])}"]
 
-    top = sorted([x for x in _unique_news(news) if not x[0]["stale"]], key=lambda x: (
-        -int(x[0]["verified"]), -x[0]["impact"]["level"],
-        x[0]["age_hours"] if x[0]["age_hours"] is not None else 9999))[:5]
+    # Chỉ tin quan trọng, ảnh hưởng lớn tới thị trường (điểm market_importance ≥ REPORT_MIN_IMPORTANCE).
+    scored = [(market_importance(x[0]), x) for x in _unique_news(news) if not x[0]["stale"]]
+    top = [x for _, x in sorted((s for s in scored if s[0]["important"]), key=lambda s: (
+        -s[0]["score"], s[1][0]["age_hours"] if s[1][0]["age_hours"] is not None else 9999))][:5]
     if top:
-        lines += ["", "<b>📰 Tin nổi bật</b>"]
+        lines += ["", "<b>📰 Tin quan trọng ảnh hưởng thị trường</b>"]
         for n, tag in top:
             bullet = {3: "🔴", 2: "🟠"}.get(n["impact"]["level"], "⚪")
             lines.append(_news_line(n, tag, bullet))

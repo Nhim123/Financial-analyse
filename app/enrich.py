@@ -99,6 +99,80 @@ _NEG += ["giảm sàn", "lao dốc", "bán tháo", "sụp đổ", "phá sản", 
 
 _LEVELS = {3: ("Cao", "🔴"), 2: ("Trung bình", "🟠"), 1: ("Thấp", "⚪")}
 
+# ---------------------------------------------------------------------------
+# MỨC QUAN TRỌNG VỚI THỊ TRƯỜNG (dùng cho báo cáo định kỳ: chỉ giữ tin có thể làm thị trường biến động)
+# Từ khoá tác động mạnh ở trên bắt cả tin doanh nghiệp nhỏ / tin "mềm" (vd "lập kỷ lục doanh thu",
+# "công bố giải thưởng"). Điểm dưới đây cộng thêm chủ đề vĩ mô – chính sách, phạm vi toàn thị trường,
+# tín hiệu Dovish/Hawkish, số nguồn xác nhận; trừ điểm tin mềm.
+# ---------------------------------------------------------------------------
+_MACRO = ["fed", "federal reserve", "fomc", "powell", "ecb", "boj", "pboc", "central bank", "interest rate",
+          "interest rates", "rate hike", "rate cut", "inflation", "cpi", "ppi", "gdp", "recession", "payrolls",
+          "jobs report", "unemployment", "treasury yields", "treasury secretary", "treasuries", "yields",
+          "bond market", "tariff", "tariffs",
+          "trade war", "sanction", "sanctions", "war", "invasion", "ceasefire", "opec", "debt ceiling",
+          "government shutdown", "stimulus", "bailout", "default", "dollar", "yuan", "currency", "oil supply",
+          "energy crisis", "gas supply", "gas storage", "hormuz", "khủng hoảng năng lượng", "nguồn cung dầu",
+          "ngân hàng nhà nước", "nhnn", "lãi suất", "lạm phát", "tỷ giá", "chính sách tiền tệ", "điều hành",
+          "thuế quan", "thuế đối ứng", "chiến tranh", "trừng phạt", "nâng hạng", "tín dụng", "room tín dụng",
+          "quốc hội", "chính phủ", "thủ tướng", "bộ tài chính", "ủy ban chứng khoán", "ubcknn", "gói hỗ trợ",
+          "nghị định", "nghị quyết", "fdi", "xuất khẩu", "giải ngân"]
+_MARKET = ["stock market", "wall street", "s&p 500", "s&p", "nasdaq", "dow", "dow jones", "stocks", "equities",
+           "global markets", "all-time high", "record high", "bitcoin", "btc", "ether", "crypto market",
+           "gold price", "gold prices", "gold", "oil price", "oil prices", "crude", "brent", "wti", "msci",
+           "ftse russell", "nikkei", "vn-index", "vnindex", "vn30", "hnx", "upcom", "chứng khoán",
+           "thị trường chứng khoán", "toàn thị trường", "thị trường chung",
+           "khối ngoại", "bán ròng", "mua ròng", "thanh khoản", "giá vàng", "vàng miếng", "giá dầu",
+           "cổ phiếu ngân hàng", "nhóm ngân hàng", "bluechip", "vốn hoá"]
+_SOFT = ["award", "awards", "podcast", "quiz", "sponsored", "giveaway", "how to", "giải thưởng", "vinh danh",
+         "khai trương", "tuyển dụng", "hội thảo", "tọa đàm", "toạ đàm", "kỷ niệm", "từ thiện", "tài trợ",
+         "cuộc thi", "khánh thành", "trao tặng"]
+
+
+def market_importance(n: dict) -> dict:
+    """Điểm quan trọng với thị trường của một tin đã gộp (news_service): score, important, lý do.
+
+    +3 mức ảnh hưởng Cao (+1 nếu Trung bình) · +3 chủ đề vĩ mô/chính sách · +2 phạm vi toàn thị trường
+    (hai mục này chỉ +1 nếu từ khoá chỉ có trong tóm tắt, không có trong tiêu đề)
+    · +2 có tín hiệu Dovish/Hawkish · +2 khi ≥2 nguồn xác nhận (+1 mỗi nguồn thêm, tối đa +4)
+    · +1 hãng tin uy tín hàng đầu · −4 tin mềm (giải thưởng, khai trương, hội thảo…).
+    Tin đạt REPORT_MIN_IMPORTANCE điểm (mặc định 5) mới được đưa vào báo cáo định kỳ.
+    """
+    from .config import REPORT_MIN_IMPORTANCE  # import muộn: config không phụ thuộc module này
+    title = f" {n.get('title', '')} {n.get('vi_title', '')} "
+    text = f"{title} {n.get('summary', '')} "
+    score, why = 0, []
+    level = (n.get("impact") or {}).get("level", 1)
+    if level == 3:
+        score += 3
+        why.append("ảnh hưởng cao")
+    elif level == 2:
+        score += 1
+    # Chủ đề nằm trong TIÊU ĐỀ mới tính đủ điểm; chỉ nhắc trong tóm tắt (vd bài về một doanh nghiệp
+    # nhỏ có câu "thị trường chứng khoán…") thì cộng ít.
+    if _RE_MACRO.search(title):
+        score += 3
+        why.append("vĩ mô – chính sách")
+    elif _RE_MACRO.search(text):
+        score += 1
+    if _RE_MARKET.search(title):
+        score += 2
+        why.append("toàn thị trường")
+    elif _RE_MARKET.search(text):
+        score += 1
+    if (n.get("tone") or {}).get("tone") in ("hawkish", "dovish"):
+        score += 2
+        why.append(n["tone"]["label"])
+    src = n.get("corroboration_count", 1)
+    if src >= 2:
+        score += min(4, src)
+        why.append(f"{src} nguồn xác nhận")
+    if n.get("trust") == 1:
+        score += 1
+    if _RE_SOFT.search(text):
+        score -= 4
+        why.append("tin mềm")
+    return {"score": score, "important": score >= REPORT_MIN_IMPORTANCE, "reasons": why}
+
 
 def _compile(words: List[str]) -> "re.Pattern":
     return re.compile(r"\b(?:" + "|".join(re.escape(w) for w in words) + r")\b", re.I)
@@ -108,6 +182,9 @@ _RE_HIGH = _compile(_HIGH)
 _RE_MED = _compile(_MED)
 _RE_POS = _compile(_POS)
 _RE_NEG = _compile(_NEG)
+_RE_MACRO = _compile(_MACRO)
+_RE_MARKET = _compile(_MARKET)
+_RE_SOFT = _compile(_SOFT)
 
 
 def _hits(text: str, rx: "re.Pattern") -> List[str]:
