@@ -84,6 +84,15 @@ Sau khi chạy (cách nào cũng được), mở trình duyệt: **http://localh
     `/danhgia MUA FPT 58.2 SL 56 TP 62 KL 1000` (chỉ đánh giá), `/vaolenh …` (đánh giá + lưu),
     `/lenhmo`, `/dong 12 [giá]`, `/caidat 500000000 2 20`, `/trogiup` — bot chỉ nhận lệnh từ đúng
     `TELEGRAM_CHAT_ID`. Kết quả là đánh giá định lượng để tham khảo, không phải khuyến nghị mua/bán.
+  - **Gợi ý cắt lỗ / chốt lời tham chiếu** (`app/levels.py`, nến ngày SSI / Binance / Yahoo; SJC theo
+    biến động % vàng thế giới): ATR(14), hỗ trợ/kháng cự fractal 60 phiên. Lệnh mới — cắt lỗ dưới hỗ trợ gần
+    nhất 0,25×ATR (hoặc 1,5×ATR), chốt lời 2R hoặc ngay trước kháng cự trong 1,5–3R, mốc 1,5R/2R/3R, khối
+    lượng tối đa theo ngân sách rủi ro; nút **✨ Gợi ý** trên form, bấm **Dùng** để điền. Vị thế **đang giữ**
+    (tick "Vị thế đang giữ" hoặc `VITHE` trên Telegram, cho phép giá vào cũ): lãi ≥1R → dời cắt lỗ về hoà vốn,
+    ≥2R → Chandelier (đỉnh từ khi vào lệnh − 3×ATR, 2×ATR khi rủi ro thị trường Cao), cắt lỗ chỉ dời theo
+    hướng có lợi, giá vượt chốt lời → mục tiêu kế tiếp. Nhật ký lệnh có cột **Gợi ý** + nút **Áp dụng**,
+    cảnh báo (giao diện/Telegram) khi có gợi ý dời cắt lỗ; Telegram `/goiy MUA FPT [giá] [KL]`,
+    `/capnhat 12 SL 57 TP 63`. Chỉ là mức tham chiếu kỹ thuật, không phải khuyến nghị đầu tư.
   - Ô tìm kiếm trên thanh công cụ lọc nhanh mã/tên. Nút **⛶** vào chế độ toàn màn hình;
     trên điện thoại các vùng tự xếp 1–2 cột.
 - **Thời gian thực** (không cần tải lại trang, không có nút cập nhật thủ công):
@@ -197,6 +206,7 @@ app/
   homepage.py        # view-model trang chủ (các tab)
   risk.py            # chấm điểm rủi ro lệnh theo fundamental + kiểm tra quản lý vốn
   trades.py          # nhật ký lệnh, lãi/lỗ, theo dõi & cảnh báo lệnh đang mở
+  levels.py          # gợi ý cắt lỗ / chốt lời tham chiếu (ATR, hỗ trợ/kháng cự, R, Chandelier)
   telegram_bot.py    # nhận lệnh /danhgia, /vaolenh, /lenhmo, /dong qua Telegram
   recap.py           # tóm tắt tin ngày hôm qua, gửi Telegram 7:00 mỗi sáng
   storage.py         # SQLite + audit trail (readings / verifications / news)

@@ -157,6 +157,13 @@ async def trade_create(request: Request):
     return {**ev, "id": trades.create(ev, note=str(data.get("note") or ""), source="web")}
 
 
+@app.post("/trades/{tid}/update")
+async def trade_update(tid: int, request: Request):
+    """Cập nhật cắt lỗ / chốt lời của lệnh đang mở (vd áp dụng gợi ý dời cắt lỗ)."""
+    data = await _body(request)
+    return trades.update(tid, data.get("stop"), data.get("target"))
+
+
 @app.post("/trades/{tid}/close")
 async def trade_close(tid: int, request: Request):
     data = await _body(request)

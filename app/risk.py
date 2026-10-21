@@ -22,7 +22,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
-from . import live, marketdata, news_service, storage
+from . import levels, live, marketdata, news_service, storage
 from .config import CRYPTO, EXTRA_CRYPTO
 from .market_tone import aggregate as tone_aggregate, market_effects
 
@@ -348,17 +348,22 @@ def _data_quality(a: dict, ctx: dict) -> dict:
 
 
 def _money(a: dict, entry: float, stop: Optional[float], target: Optional[float], qty: Optional[float],
-           settings: dict, q_all: dict, open_same: int) -> dict:
+           settings: dict, q_all: dict, open_same: int, side: int = 1) -> dict:
     to_vnd = a["mult"] * (usdvnd(q_all) if a["ccy"] == "USD" else 1.0)  # 1 đơn vị giá hiển thị -> VND
     capital = settings["capital"] or 0
     checks = []
     rr = risk_amt = risk_pct = pos_vnd = pos_pct = max_qty = None
     stop_pct = abs(entry - stop) / entry * 100 if stop else None
+    locked = bool(stop) and side * (entry - stop) <= 0  # vị thế đang mở: cắt lỗ đã dời lên vùng lãi
 
     if not stop:
         checks.append(("bad", "Chưa đặt cắt lỗ", "Lệnh không có điểm cắt lỗ — rủi ro không giới hạn"))
+    elif locked:
+        risk_amt = 0.0 if qty else None
+        checks.append(("ok", "Cắt lỗ đã khoá lãi", f"Cắt lỗ cách giá vào {stop_pct:.2f}% về phía có lãi — "
+                                                    "không còn rủi ro lỗ vốn"))
     else:
-        per_unit = abs(entry - stop) * to_vnd
+        per_unit = side * (entry - stop) * to_vnd
         if capital > 0 and per_unit > 0:
             max_qty = capital * settings["max_risk_pct"] / 100 / per_unit
             if a.get("lot"):
@@ -370,12 +375,12 @@ def _money(a: dict, entry: float, stop: Optional[float], target: Optional[float]
                            f"Khoảng cắt lỗ {stop_pct:.2f}% < một nửa biến động ngày (~{a['vol']:g}%) — dễ bị quét"))
         else:
             checks.append(("ok", "Có cắt lỗ", f"Khoảng cắt lỗ {stop_pct:.2f}% so với giá vào"))
-    if stop and target:
+    if stop and target and not locked:
         rr = abs(target - entry) / abs(entry - stop)
         st = "ok" if rr >= 2 else ("warn" if rr >= 1 else "bad")
         checks.append((st, f"Tỷ lệ lời/lỗ (R:R) 1:{rr:.2f}",
                        "≥ 1:2 là hợp lý" if st == "ok" else "Lợi nhuận kỳ vọng thấp so với rủi ro chấp nhận"))
-    elif not target:
+    elif not target and not locked:
         checks.append(("warn", "Chưa đặt chốt lời", "Không tính được tỷ lệ lời/lỗ"))
     if qty:
         pos_vnd = entry * to_vnd * qty
@@ -411,7 +416,8 @@ def level_of(score: float) -> Tuple[str, str]:
 
 
 def evaluate(req: dict, ctx: Optional[dict] = None, open_same: int = 0) -> dict:
-    """Đánh giá một lệnh. req: symbol|key, side ('buy'|'sell'), entry, stop, target, qty."""
+    """Đánh giá một lệnh. req: symbol|key, side ('buy'|'sell'), entry, stop, target, qty.
+    req['position']=True: vị thế ĐANG MỞ (cắt lỗ/chốt lời so với giá hiện tại; kèm gợi ý dời cắt lỗ)."""
     ctx = ctx or context()
     q_all = ctx["q"]
     key = req.get("key") or resolve(req.get("symbol", ""), q_all)
@@ -429,22 +435,31 @@ def evaluate(req: dict, ctx: Optional[dict] = None, open_same: int = 0) -> dict:
         errors.append("Thị trường cơ sở Việt Nam không cho bán khống — chỉ đánh giá lệnh MUA cổ phiếu")
     entry = _f(req.get("entry")) or price
     stop, target, qty = _f(req.get("stop")), _f(req.get("target")), _f(req.get("qty"))
+    position = bool(req.get("position"))
+    # Lệnh mới: so với giá vào. Vị thế đang mở: cắt lỗ có thể đã dời lên vùng lãi -> so với giá hiện tại;
+    # cắt lỗ đã bị chạm / chốt lời đã vượt vẫn đánh giá được (trades.monitor sẽ cảnh báo riêng).
+    ref, ref_name = entry, "giá vào"
     if entry <= 0:
         errors.append("Giá vào phải lớn hơn 0")
-    if stop is not None and (stop <= 0 or (side > 0 and stop >= entry) or (side < 0 and stop <= entry)):
-        errors.append(f"Cắt lỗ phải {'thấp' if side > 0 else 'cao'} hơn giá vào với lệnh {'MUA' if side > 0 else 'BÁN'}")
-    if target is not None and (target <= 0 or (side > 0 and target <= entry) or (side < 0 and target >= entry)):
-        errors.append(f"Chốt lời phải {'cao' if side > 0 else 'thấp'} hơn giá vào với lệnh {'MUA' if side > 0 else 'BÁN'}")
+    if not position:
+        if stop is not None and (stop <= 0 or (side > 0 and stop >= ref) or (side < 0 and stop <= ref)):
+            errors.append(f"Cắt lỗ phải {'thấp' if side > 0 else 'cao'} hơn {ref_name} với lệnh "
+                          f"{'MUA' if side > 0 else 'BÁN'}")
+        if target is not None and (target <= 0 or (side > 0 and target <= ref) or (side < 0 and target >= ref)):
+            errors.append(f"Chốt lời phải {'cao' if side > 0 else 'thấp'} hơn {ref_name} với lệnh "
+                          f"{'MUA' if side > 0 else 'BÁN'}")
+    elif (stop is not None and stop <= 0) or (target is not None and target <= 0):
+        errors.append("Cắt lỗ / chốt lời phải lớn hơn 0")
     if qty is not None and qty <= 0:
         errors.append("Khối lượng phải lớn hơn 0")
-    if a["cls"] == "vn" and q.get("ceil") and q.get("floor") and entry > 0:
+    if a["cls"] == "vn" and q.get("ceil") and q.get("floor") and entry > 0 and not position:
         if not (q["floor"] * a["scale"] - 1e-9 <= entry <= q["ceil"] * a["scale"] + 1e-9):
             errors.append(f"Giá vào ngoài biên độ phiên: sàn {q['floor'] / 1000:,.2f} – trần {q['ceil'] / 1000:,.2f}")
     if errors:
         return {"ok": False, "errors": errors}
 
     settings = get_settings()
-    money = _money(a, entry, stop, target, qty, settings, q_all, open_same)
+    money = _money(a, entry, stop, target, qty, settings, q_all, open_same, side)
     related = _related_news(a, ctx)
     ev_factor, events = _events(a, ctx)
     factors = [_market_trend(a, side, ctx), _policy(a, side, ctx), _news(a, side, related), ev_factor,
@@ -460,6 +475,13 @@ def evaluate(req: dict, ctx: Optional[dict] = None, open_same: int = 0) -> dict:
     lvl, lvl_cls = level_of(total)
     mlvl, mcls = level_of(market_score)
     worst = sorted((f for f in used if f["kind"] == "risk"), key=lambda f: -f["score"] * f["weight"])
+    try:  # gợi ý cắt lỗ / chốt lời tham chiếu (ATR, hỗ trợ/kháng cự, bội số R) — lỗi mạng thì bỏ qua
+        lv = levels.suggest(a, "buy" if side > 0 else "sell", entry, qty=qty, to_vnd=money["to_vnd"],
+                            settings=settings, price_now=price if position else None,
+                            stop_current=stop if position else None, target_current=target if position else None,
+                            opened_at=req.get("opened_at"), risk_score=market_score)
+    except Exception:  # noqa: BLE001
+        lv = None
     return {
         "ok": True, "key": key, "symbol": a["symbol"], "name": a["name"], "cls": a["cls"],
         "unit": a["unit"], "qty_unit": a["qty_unit"], "dec": a["dec"], "scale": a["scale"],
@@ -474,7 +496,7 @@ def evaluate(req: dict, ctx: Optional[dict] = None, open_same: int = 0) -> dict:
                   "age": n["age_hours"], "direction": n["impact"].get("direction"),
                   "impact": n["impact"].get("level_label")} for n in related[:5]],
         "events": [{"dt": e["dt"], "title": e["vi"], "country": e["country"], "imp": e["imp"]} for e in events],
-        "settings": settings,
+        "settings": settings, "levels": lv, "position": position,
         "ts": ctx["now"].isoformat(timespec="seconds"),
         "disclaimer": "Đánh giá định lượng từ dữ liệu thị trường để tham khảo, không phải khuyến nghị mua/bán.",
     }

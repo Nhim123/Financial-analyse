@@ -82,6 +82,58 @@ def close(tid: int, price: Optional[float] = None) -> dict:
     return {"ok": True, "id": tid, "price": price}
 
 
+def update(tid: int, stop=None, target=None) -> dict:
+    """Cập nhật cắt lỗ / chốt lời của lệnh đang mở (vd áp dụng gợi ý dời cắt lỗ).
+    Kiểm tra theo GIÁ HIỆN TẠI: lệnh MUA — cắt lỗ < giá hiện tại < chốt lời (BÁN ngược lại)."""
+    t = get(tid)
+    if not t:
+        return {"ok": False, "error": f"Không có lệnh #{tid}"}
+    if t["status"] != "open":
+        return {"ok": False, "error": f"Lệnh #{tid} đã đóng"}
+    stop, target = risk._f(stop), risk._f(target)
+    if stop is None and target is None:
+        return {"ok": False, "error": "Nhập cắt lỗ và/hoặc chốt lời mới"}
+    q = live.quotes()
+    a = risk.asset_info(t["key"], q)
+    p = (q.get(t["key"]) or {}).get("price")
+    price = p * a["scale"] if (p and a) else None
+    s = 1 if t["side"] == "buy" else -1
+    if price is not None:
+        if stop is not None and (stop <= 0 or s * (price - stop) <= 0):
+            return {"ok": False, "error": f"Cắt lỗ phải {'thấp' if s > 0 else 'cao'} hơn giá hiện tại "
+                                          f"{_fmt(price, a['dec'])}"}
+        if target is not None and (target <= 0 or s * (target - price) <= 0):
+            return {"ok": False, "error": f"Chốt lời phải {'cao' if s > 0 else 'thấp'} hơn giá hiện tại "
+                                          f"{_fmt(price, a['dec'])}"}
+    new_stop = stop if stop is not None else t["stop"]
+    new_target = target if target is not None else t["target"]
+    note = []
+    if stop is not None:
+        note.append(f"cắt lỗ {_fmt(t['stop'], a['dec'] if a else 2)} → {_fmt(stop, a['dec'] if a else 2)}")
+    if target is not None:
+        note.append(f"chốt lời {_fmt(t['target'], a['dec'] if a else 2)} → {_fmt(target, a['dec'] if a else 2)}")
+    alerts = json.loads(t["alerts"] or "[]")
+    alerts.append({"key": f"trade:{tid}:edit:{_now()}", "ts": _now(), "level": "TIN",
+                   "text": "Đã cập nhật " + ", ".join(note)})
+    storage.db_exec("UPDATE trades SET stop=?, target=?, alerts=? WHERE id=?",
+                    (new_stop, new_target, json.dumps(alerts[-_MAX_ALERTS:], ensure_ascii=False), tid))
+    return {"ok": True, "id": tid, "stop": new_stop, "target": new_target}
+
+
+def suggestion(t: dict) -> Optional[dict]:
+    """Gợi ý dời cắt lỗ / chốt lời của lệnh đang mở từ lần đánh giá gần nhất (trades.monitor)."""
+    try:
+        ev = json.loads(t.get("eval_json") or "{}")
+    except ValueError:
+        return None
+    pos = (ev.get("levels") or {}).get("position")
+    if pos:  # so với cắt lỗ / chốt lời HIỆN TẠI (người dùng có thể vừa áp dụng gợi ý)
+        s = 1 if t["side"] == "buy" else -1
+        pos = {**pos, "changed": t["stop"] is None or s * (pos["stop"] - t["stop"]) > 1e-9,
+               "target_changed": bool(pos.get("target_changed")) and abs((t["target"] or 0) - pos["target"]) > 1e-9}
+    return pos
+
+
 # ---------------------------------------------------------------------------
 # Lãi / lỗ
 # ---------------------------------------------------------------------------
@@ -112,7 +164,8 @@ def journal_view() -> dict:
                          "pnl": _pnl(t, price, to_vnd), "unit": a["unit"] if a else "",
                          "now_class": risk.level_of(t["risk_now"] or 0)[1],
                          "entry_class": risk.level_of(t["risk_entry"] or 0)[1],
-                         "alerts": json.loads(t["alerts"] or "[]")[-3:][::-1], "created_vn": _vn(t["created_at"])})
+                         "alerts": json.loads(t["alerts"] or "[]")[-3:][::-1], "created_vn": _vn(t["created_at"]),
+                         "sugg": suggestion(t)})
     for t in list_trades("closed", 20):
         a = risk.asset_info(t["key"], q)
         out_closed.append({**t, "dec": a["dec"] if a else 2, "pnl": _pnl(t, t["close_price"], _to_vnd(t, q)),
@@ -151,7 +204,8 @@ def monitor() -> dict:
     new_alerts = 0
     for t in opened:
         ev = risk.evaluate({"key": t["key"], "side": t["side"], "entry": t["entry"], "stop": t["stop"],
-                            "target": t["target"], "qty": t["qty"]}, ctx)
+                            "target": t["target"], "qty": t["qty"], "position": True,
+                            "opened_at": t["created_at"]}, ctx)
         if not ev.get("ok"):
             continue
         a = risk.asset_info(t["key"], q)
@@ -179,6 +233,15 @@ def monitor() -> dict:
             new_base = ev["market_score"]
         elif ev["market_score"] < base - 15:
             new_base = ev["market_score"]  # rủi ro đã giảm hẳn -> hạ mốc để lần tăng sau vẫn được báo
+        pos = (ev.get("levels") or {}).get("position")
+        if pos and pos["changed"] and pos["stop_action"] != "Giữ nguyên cắt lỗ":
+            found.append((_alert_key(t["id"], "trail", f"{pos['stop']:.6f}"), "TIN",
+                          f"Gợi ý: {pos['stop_action'][:1].lower() + pos['stop_action'][1:]} → "
+                          f"{_fmt(pos['stop'], a['dec'])} "
+                          f"({pos['stop_reason']})"))
+        if pos and pos.get("target_changed") and t["target"] and s * (price - t["target"]) >= 0:
+            found.append((_alert_key(t["id"], "tgt", f"{pos['target']:.6f}"), "TIN",
+                          f"Gợi ý mục tiêu chốt lời kế tiếp {_fmt(pos['target'], a['dec'])} ({pos['target_reason']})"))
         for n in ev["news"]:
             against = {"Tích cực": -1, "Tiêu cực": 1}.get(n["direction"], 0) * s > 0
             if against and n["impact"] == "Cao" and n["age"] is not None and n["age"] <= 3:

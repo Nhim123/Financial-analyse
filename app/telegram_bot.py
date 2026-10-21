@@ -26,7 +26,10 @@ _HELP = (
     "<b>FinWatch · Đánh giá rủi ro lệnh</b>\n"
     "/danhgia MUA FPT 58.2 SL 56 TP 62 KL 1000 — chỉ đánh giá\n"
     "/vaolenh MUA BTC 81000 SL 78500 TP 86000 KL 0.05 — đánh giá + lưu nhật ký, theo dõi &amp; cảnh báo\n"
-    "/lenhmo — lệnh đang mở\n"
+    "   (thêm VITHE nếu là vị thế đã mua từ trước, vd /vaolenh MUA FPT 52 SL 50 KL 1000 VITHE)\n"
+    "/goiy MUA FPT [giá] [KL 1000] — gợi ý cắt lỗ / chốt lời tham chiếu (ATR, hỗ trợ/kháng cự)\n"
+    "/lenhmo — lệnh đang mở (kèm gợi ý dời cắt lỗ)\n"
+    "/capnhat 12 SL 57 TP 63 — sửa cắt lỗ / chốt lời của lệnh #12\n"
     "/dong 12 [giá] — đóng lệnh #12\n"
     "/caidat 500000000 2 20 — vốn (₫), % rủi ro tối đa/lệnh, % tỷ trọng tối đa/mã\n"
     "Mã: cổ phiếu VN (FPT, HPG…), SJC, XAU, XAG, WTI, BRENT, NG, HG, KC, BTC, ETH…\n"
@@ -49,6 +52,8 @@ def parse_order(args: list) -> dict:
     if i < len(toks) and risk._f(toks[i]) is not None:
         req["entry"] = risk._f(toks[i])
         i += 1
+    if any(t.upper() in ("VITHE", "DANGGIU") for t in toks):  # vị thế đã mở từ trước (giá vào cũ)
+        req["position"] = True
     while i < len(toks) - 1:
         field = _KEYS.get(toks[i].upper())
         if field:
@@ -98,6 +103,36 @@ def format_eval(ev: dict) -> str:
     return "\n".join(lines)
 
 
+def format_levels(ev: dict) -> str:
+    """Tin nhắn gợi ý cắt lỗ / chốt lời tham chiếu cho một lệnh (từ risk.evaluate -> levels)."""
+    if not ev.get("ok"):
+        return "❌ " + _e("; ".join(ev.get("errors", ["Không tính được"])))
+    lv = ev.get("levels")
+    if not lv:
+        return "❌ Chưa lấy được dữ liệu giá để tính gợi ý — thử lại sau."
+    d = ev["dec"]
+
+    def f(v):
+        return "—" if v is None else f"{v:,.{d}f}"
+
+    lines = [f"<b>Gợi ý cắt lỗ / chốt lời · {ev['side_label']} {_e(ev['symbol'])}</b>",
+             f"Giá vào {f(ev['entry'])} {_e(ev['unit'])} · ATR(14) {f(lv['atr'])} ({lv['atr_pct']:.2f}%/phiên)",
+             "", f"🛑 <b>Cắt lỗ {f(lv['stop']['value'])}</b> (−{lv['stop']['dist_pct']:.2f}%) — {_e(lv['stop']['method'])}",
+             "   Khác: " + " · ".join(f"{_e(x['label'])} {f(x['value'])}" for x in lv["stop"]["alt"]),
+             f"🎯 <b>Chốt lời {f(lv['target']['value'])}</b>"
+             + (f" (R:R 1:{lv['target']['rr']:.2f})" if lv["target"]["rr"] else "") + f" — {_e(lv['target']['method'])}",
+             "   Mốc: " + " · ".join(f"{x['label']} {f(x['value'])}" for x in lv["targets"])]
+    if lv["supports"] or lv["resistances"]:
+        lines.append(f"Hỗ trợ: {', '.join(f(x) for x in lv['supports']) or '—'} · "
+                     f"Kháng cự: {', '.join(f(x) for x in lv['resistances']) or '—'}")
+    if lv.get("budget"):
+        lines.append(f"Theo cài đặt vốn: lỗ tối đa {lv['budget']['max_loss']:,.0f} ₫ → KL tối đa "
+                     f"~{lv['budget']['qty_max']:,.0f} {_e(ev['qty_unit'])}")
+    lines += [f"• {_e(n)}" for n in lv["notes"]]
+    lines += ["", f"<i>{_e(lv['disclaimer'])}</i>", "Lưu lệnh: /vaolenh … SL &lt;cắt lỗ&gt; TP &lt;chốt lời&gt;"]
+    return "\n".join(lines)
+
+
 def _open_list() -> str:
     j = trades.journal_view()
     if not j["open"]:
@@ -111,6 +146,9 @@ def _open_list() -> str:
         price = "—" if t["price"] is None else f"{t['price']:,.{d}f}"
         lines.append(f"#{t['id']} {'MUA' if t['side'] == 'buy' else 'BÁN'} {_e(t['symbol'])} vào {t['entry']:,.{d}f} → "
                      f"{price} · {pl} · rủi ro {t['risk_entry']}→{t['risk_now']}")
+        sg = t.get("sugg")
+        if sg and sg.get("changed"):
+            lines.append(f"   💡 {_e(sg['stop_action'])}: {sg['stop']:,.{d}f} — /capnhat {t['id']} SL {sg['stop']:g}")
     lines.append(f"Lãi/lỗ tạm tính: {j['floating']:+,.0f} ₫")
     return "\n".join(lines)
 
@@ -132,6 +170,19 @@ def handle(text: str) -> str:
             tid = trades.create(ev, note="", source="telegram")
             msg += f"\n\n📒 Đã lưu lệnh <b>#{tid}</b> vào nhật ký — hệ thống sẽ theo dõi và cảnh báo."
         return msg
+    if cmd == "/goiy":
+        if not args:
+            return "Cú pháp: /goiy MUA FPT [giá vào] [KL 1000]"
+        req = parse_order(args)
+        ev = risk.evaluate({k: v for k, v in req.items() if k not in ("stop", "target")})
+        return format_levels(ev)
+    if cmd == "/capnhat":
+        if not args or not args[0].lstrip("#").isdigit():
+            return "Cú pháp: /capnhat 12 SL 57 TP 63"
+        req = parse_order(["X", "X"] + args[1:])  # tái dùng bộ đọc SL/TP
+        r = trades.update(int(args[0].lstrip("#")), req.get("stop"), req.get("target"))
+        return (f"✅ Lệnh #{r['id']}: cắt lỗ {r['stop'] or 0:,g} · chốt lời {r['target'] or 0:,g}" if r["ok"]
+                else "❌ " + _e(r["error"]))
     if cmd == "/lenhmo":
         return _open_list()
     if cmd == "/dong":

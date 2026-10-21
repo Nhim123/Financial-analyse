@@ -250,6 +250,24 @@
   .rbadge { display:inline-block; min-width:28px; text-align:center; font:700 11px/1 'IBM Plex Mono'; padding:4px 6px; border-radius:6px; }
   .rbadge.lo { background:#e7f6ec; color:#0e7a3c; } .rbadge.mid { background:#fbf0df; color:var(--mid); } .rbadge.hi { background:#fdeaef; color:#c0303a; }
   .jal div { font-size:11px; line-height:1.35; margin-bottom:3px; max-width:260px; }
+  .jsg { min-width:190px; } .jsg div { font-size:11.5px; line-height:1.4; margin-bottom:3px; }
+  .jsg .sg-on { color:var(--accent); font-weight:600; } .jsg .btn { margin-top:4px; }
+  .ochk { flex-direction:row !important; align-items:center; gap:8px !important; font:500 12px/1.3 'IBM Plex Sans' !important;
+          color:var(--ink2) !important; cursor:pointer; }
+  .ochk input { width:auto !important; margin:0; accent-color:var(--accent); }
+  .btn.sugg { border-style:dashed; border-color:var(--accent); color:var(--accent); background:var(--accent-a06); }
+  .lvbox { border:1px solid var(--line2); border-radius:12px; background:var(--bg4); padding:12px 13px; font:400 12px/1.45 'IBM Plex Sans'; color:var(--mut); }
+  .lvbox .lvh { display:flex; justify-content:space-between; gap:8px; font:600 12.5px 'IBM Plex Sans'; color:var(--ink); }
+  .lvrow { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid var(--line2); }
+  .lvrow:last-of-type { border-bottom:0; }
+  .lvrow .k { font:600 11px 'IBM Plex Sans'; color:var(--mut); min-width:70px; }
+  .lvrow .v { font:600 15px 'IBM Plex Mono'; color:var(--ink); }
+  .lvrow .m { flex:1; font-size:11px; }
+  .chipsel { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chipsel button { border:1px solid var(--card-bd); background:#fff; border-radius:8px; padding:5px 8px; cursor:pointer;
+                    font:500 11px 'IBM Plex Mono'; color:var(--ink2); }
+  .chipsel button:hover { border-color:var(--accent); color:var(--accent); }
+  .lvuse { border:0; background:var(--accent); color:#fff; border-radius:7px; padding:5px 10px; font:600 11px 'IBM Plex Sans'; cursor:pointer; }
   .al-hi { color:#c0303a; } .al-mid { color:var(--mid); } .al-lo { color:#0e7a3c; }
   .ftime { display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; padding-top:1px;
            font:600 12px/1 'IBM Plex Mono'; color:var(--tab); }
@@ -1021,6 +1039,9 @@
               <label>Chốt lời <input id="o-target" inputmode="decimal" placeholder="mục tiêu"></label>
             </div>
             <label class="fl1">Ghi chú <input id="o-note" maxlength="300" placeholder="lý do vào lệnh (tuỳ chọn)"></label>
+            <label class="ochk"><input type="checkbox" id="o-pos"> Vị thế đang giữ (đã mua/bán từ trước — giá vào cũ)</label>
+            <button type="button" class="btn sugg" onclick="suggestLevels()">✨ Gợi ý cắt lỗ / chốt lời</button>
+            <div id="o-sugg"></div>
             <div class="obtns">
               <button type="submit" class="btn">Đánh giá rủi ro</button>
               <button type="button" class="btn pri" onclick="evalOrder(true)">Đánh giá &amp; lưu lệnh</button>
@@ -1052,7 +1073,7 @@
       </div>
       <div class="jwrap">
         <table class="jtable">
-          <thead><tr><th>#</th><th>Vào lúc</th><th>Mã</th><th class="r">Giá vào</th><th class="r">Cắt lỗ / Chốt lời</th><th class="r">KL</th><th class="r">Giá hiện tại</th><th class="r">Lãi/lỗ</th><th>Rủi ro vào → nay</th><th>Cảnh báo</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Vào lúc</th><th>Mã</th><th class="r">Giá vào</th><th class="r">Cắt lỗ / Chốt lời</th><th class="r">KL</th><th class="r">Giá hiện tại</th><th class="r">Lãi/lỗ</th><th>Rủi ro vào → nay</th><th>Gợi ý cắt lỗ / chốt lời</th><th>Cảnh báo</th><th></th></tr></thead>
           <tbody>
           {% for t in journal.open %}
           <tr class="jrow" data-key="{{ t.key }}" data-entry="{{ t.entry }}" data-side="{{ t.side }}" data-qty="{{ t.qty or 0 }}" data-tovnd="{{ t.to_vnd }}">
@@ -1065,11 +1086,16 @@
             <td class="r mono" data-l="Giá hiện tại">{% if t.price is not none %}<span class="js-v" data-dec="{{ t.dec }}" data-scale="{{ t.scale }}">{{ '{:,.{}f}'.format(t.price, t.dec) }}</span>{% else %}—{% endif %}</td>
             <td data-l="Lãi/lỗ" class="r mono js-pl {{ 'up' if (t.pnl.pct or 0) >= 0 else 'dn' }}">{% if t.pnl.pct is not none %}{{ '%+.2f'|format(t.pnl.pct) }}%{% if t.pnl.vnd is not none %}<div>{{ '{:+,.0f}'.format(t.pnl.vnd) }} ₫</div>{% endif %}{% else %}—{% endif %}</td>
             <td data-l="Rủi ro vào → nay"><span class="rbadge {{ t.entry_class }}">{{ t.risk_entry }}</span> → <span class="rbadge {{ t.now_class }}">{{ t.risk_now }}</span></td>
+            <td class="jsg" data-l="Gợi ý">{% set sg = t.sugg %}{% if sg %}
+              <div class="{{ 'sg-on' if sg.changed else 'faint' }}" title="{{ sg.stop_reason }}">{{ sg.stop_action }}: <b class="mono">{{ '{:,.{}f}'.format(sg.stop, t.dec) }}</b>{% if sg.lock_pct > 0 %} <span class="up">(khoá lãi {{ '%.1f'|format(sg.lock_pct) }}%)</span>{% endif %}</div>
+              <div class="faint" title="{{ sg.target_reason }}">{{ sg.target_action }}: <b class="mono">{{ '{:,.{}f}'.format(sg.target, t.dec) }}</b></div>
+              {% if sg.changed or sg.target_changed %}<button class="btn sm" onclick="applySugg({{ t.id }}, {{ sg.stop if sg.changed else 'null' }}, {{ sg.target if sg.target_changed else 'null' }}, '{{ t.symbol }}')">Áp dụng gợi ý</button>{% endif %}
+              {% else %}<span class="faint">đang tính… (≤2 phút)</span>{% endif %}</td>
             <td class="jal" data-l="Cảnh báo">{% for al in t.alerts %}<div class="al-{{ 'hi' if al.level == 'KHẨN' else ('mid' if al.level == 'CHÚ Ý' else 'lo') }}">{{ al.text }}</div>{% else %}<span class="faint">—</span>{% endfor %}</td>
             <td class="jact" data-l=""><button class="btn sm" onclick="closeTrade({{ t.id }}, '{{ t.symbol }}')">Đóng lệnh</button></td>
           </tr>
           {% else %}
-          <tr class="jempty"><td colspan="11" class="empty">Chưa có lệnh đang mở. Bấm "Đánh giá &amp; lưu lệnh" (hoặc /vaolenh trên Telegram) để ghi nhật ký và được theo dõi, cảnh báo.</td></tr>
+          <tr class="jempty"><td colspan="12" class="empty">Chưa có lệnh đang mở. Bấm "Đánh giá &amp; lưu lệnh" (hoặc /vaolenh trên Telegram) để ghi nhật ký và được theo dõi, cảnh báo.</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -1526,7 +1552,8 @@ async function postJSON(url, data) {
 }
 async function evalOrder(save) {
   const data = {symbol: $('o-sym').value.trim(), side: orderSide, entry: $('o-entry').value, stop: $('o-stop').value,
-                target: $('o-target').value, qty: qtyValue($('o-qty').value), note: $('o-note').value};
+                target: $('o-target').value, qty: qtyValue($('o-qty').value), note: $('o-note').value,
+                position: $('o-pos').checked};
   if (!data.symbol) { $('o-sym').focus(); return; }
   const box = $('riskres');
   box.innerHTML = '<div class="empty" style="padding:30px 6px">Đang đánh giá…</div>';
@@ -1576,9 +1603,62 @@ function renderRisk(ev, saved) {
         <div><div class="k">KL tối đa theo cài đặt</div><div class="v">${m.max_qty == null ? '—' : Math.floor(m.max_qty).toLocaleString('en-US')}</div></div>
       </div>
       <div style="margin-top:6px">${ck}</div></div>
+    ${ev.levels ? `<div class="rsec"><div class="ct sm">Gợi ý cắt lỗ / chốt lời tham chiếu</div><div style="margin-top:8px">${levelsHTML(ev)}</div></div>` : ''}
     <div class="rsec"><div class="ct sm">Tin liên quan</div><div class="rlist">${news}</div></div>
     <div class="rsec"><div class="ct sm">Sự kiện kinh tế 48 giờ tới</div><div class="rlist">${evs}</div></div>
     <div class="faint" style="margin-top:14px">${esc(ev.disclaimer)} Đánh giá lúc ${new Date(ev.ts).toLocaleTimeString('vi-VN', {hour12: false, timeZone: VN_TZ})}.</div>`;
+}
+// ===== Gợi ý cắt lỗ / chốt lời (ATR, hỗ trợ/kháng cự, bội số R) — chỉ tham chiếu =====
+function fillOrder(field, v) {
+  const el = $(field === 'stop' ? 'o-stop' : (field === 'target' ? 'o-target' : 'o-qty'));
+  el.value = v; el.dispatchEvent(new Event('input'));
+  el.classList.add('flash-up'); setTimeout(() => el.classList.remove('flash-up'), 1400);
+}
+function levelsHTML(ev) {
+  const lv = ev.levels, d = ev.dec, f = v => v == null ? '—' : fmt(v, d);
+  const use = (field, v) => `<button type="button" class="lvuse" onclick="fillOrder('${field}', ${v})">Dùng</button>`;
+  const chips = (arr, field) => `<div class="chipsel">${arr.map(x => `<button type="button" onclick="fillOrder('${field}', ${x.value})">${esc(x.label)} ${f(x.value)}</button>`).join('')}</div>`;
+  const qmax = lv.budget ? (ev.cls === 'vn' ? Math.floor(lv.budget.qty_max) : +lv.budget.qty_max.toPrecision(3)) : null;
+  let pos = '';
+  if (lv.position) {
+    const p = lv.position;
+    pos = `<div class="lvrow"><span class="k">Vị thế</span><span class="m">lãi hiện tại <b class="mono ${p.r_now >= 0 ? 'up' : 'dn'}">${p.r_now >= 0 ? '+' : ''}${p.r_now.toFixed(2)}R</b> · ${esc(p.stop_action)}: <b class="mono">${f(p.stop)}</b> — ${esc(p.stop_reason)}</span>${p.changed ? use('stop', p.stop) : ''}</div>`;
+  }
+  return `<div class="lvbox">
+    <div class="lvh"><span>${ev.side_label} ${esc(ev.symbol)} · vào ${f(ev.entry)}</span><span class="mono faint">ATR(14) ${f(lv.atr)} · ${lv.atr_pct.toFixed(2)}%/phiên</span></div>
+    ${pos}
+    <div class="lvrow"><span class="k">Cắt lỗ</span><span class="v dn">${f(lv.stop.value)}</span><span class="m">−${lv.stop.dist_pct.toFixed(2)}% · ${esc(lv.stop.method)}</span>${use('stop', lv.stop.value)}</div>
+    ${chips(lv.stop.alt, 'stop')}
+    <div class="lvrow" style="margin-top:6px"><span class="k">Chốt lời</span><span class="v up">${f(lv.target.value)}</span><span class="m">${lv.target.rr ? 'R:R 1:' + lv.target.rr.toFixed(2) + ' · ' : ''}${esc(lv.target.method)}</span>${use('target', lv.target.value)}</div>
+    ${chips(lv.targets, 'target')}
+    <div style="margin-top:8px">Hỗ trợ: <b class="mono">${lv.supports.map(f).join(', ') || '—'}</b> · Kháng cự: <b class="mono">${lv.resistances.map(f).join(', ') || '—'}</b></div>
+    ${qmax != null ? `<div style="margin-top:6px">Theo cài đặt vốn: lỗ tối đa ${Math.round(lv.budget.max_loss).toLocaleString('en-US')} ₫ → KL tối đa <b class="mono">${qmax.toLocaleString('en-US')}</b> ${esc(ev.qty_unit)} <button type="button" class="lvuse" onclick="fillOrder('qty', ${qmax})">Dùng KL</button></div>` : ''}
+    ${lv.notes.map(n => `<div style="margin-top:6px">• ${esc(n)}</div>`).join('')}
+    <div class="faint" style="margin-top:8px">${esc(lv.disclaimer)}</div>
+  </div>`;
+}
+async function suggestLevels() {
+  const box = $('o-sugg');
+  const data = {symbol: $('o-sym').value.trim(), side: orderSide, entry: $('o-entry').value, qty: qtyValue($('o-qty').value),
+                position: $('o-pos').checked};
+  if (!data.symbol) { $('o-sym').focus(); return; }
+  // vị thế đang giữ: gửi kèm cắt lỗ/chốt lời hiện có để tính gợi ý dời cắt lỗ theo giá hiện tại
+  if (data.position) { data.stop = $('o-stop').value; data.target = $('o-target').value; }
+  box.innerHTML = '<div class="faint">Đang tính gợi ý từ dữ liệu nến ngày…</div>';
+  try {
+    const ev = await postJSON('/risk/evaluate', data);
+    box.innerHTML = !ev.ok ? `<div class="rerr">❌ ${(ev.errors || []).map(esc).join('<br>')}</div>`
+      : (ev.levels ? levelsHTML(ev) : '<div class="rerr">Chưa lấy được dữ liệu giá để tính gợi ý — thử lại sau.</div>');
+  } catch (e) { box.innerHTML = `<div class="rerr">Lỗi kết nối: ${esc(e)}</div>`; }
+}
+async function applySugg(id, stop, target, sym) {
+  const parts = [];
+  if (stop != null) parts.push(`cắt lỗ → ${stop}`);
+  if (target != null) parts.push(`chốt lời → ${target}`);
+  if (!confirm(`Áp dụng gợi ý cho lệnh #${id} ${sym}: ${parts.join(', ')}?`)) return;
+  const r = await postJSON(`/trades/${id}/update`, {stop, target});
+  if (!r.ok) { alert(r.error || 'Không cập nhật được'); return; }
+  refreshSections();
 }
 async function saveRiskSettings() {
   const r = await postJSON('/risk/settings', {capital: $('s-cap').value, max_risk_pct: $('s-risk').value, max_pos_pct: $('s-pos').value});
