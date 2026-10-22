@@ -14,10 +14,10 @@ import threading
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Deque, Dict, List, Optional
 
-from . import live, storage
+from . import econ_events, live, notifier, storage
 from .collectors.http import get_client, now_iso
 from .config import CRYPTO, EXTRA_CRYPTO, VN_INDICES
 from .enrich import translate_vi
@@ -135,9 +135,21 @@ def _cal_vi(title: str, client) -> str:
 
 
 def _calendar(client) -> None:
-    """Lịch sự kiện kinh tế tuần này (giờ VN); dịch tiêu đề và lưu bản dịch để dùng lại."""
+    """Lịch sự kiện kinh tế tuần này (giờ VN); dịch tiêu đề và lưu bản dịch để dùng lại.
+
+    Bản lịch gần nhất được lưu lại: khởi động lại đúng lúc nguồn lỗi / giới hạn lượt gọi (HTTP 429)
+    vẫn hiển thị được lịch đã có thay vì để trống.
+    """
     r = client.get("https://nfs.faireconomy.media/ff_calendar_thisweek.json")
-    r.raise_for_status()
+    if r.status_code != 200:
+        with _lock:
+            empty = not _data["calendar"]
+        if empty:
+            cached = json.loads(storage.kv_get("calendar_last") or "[]")
+            _apply_actuals(cached, json.loads(storage.kv_get("cal_actuals") or "{}"))
+            with _lock:
+                _data["calendar"] = cached
+        r.raise_for_status()
     cache = json.loads(storage.kv_get("calendar_vi2") or "{}")
     events = []
     for e in r.json():
@@ -152,8 +164,61 @@ def _calendar(client) -> None:
                        "country": e.get("country", ""), "imp": imp,
                        "forecast": e.get("forecast") or "", "previous": e.get("previous") or ""})
     storage.kv_set("calendar_vi2", json.dumps(cache, ensure_ascii=False))
+    storage.kv_set("calendar_last", json.dumps(events, ensure_ascii=False))
+    _apply_actuals(events, json.loads(storage.kv_get("cal_actuals") or "{}"))
     with _lock:
         _data["calendar"] = sorted(events, key=lambda x: x["dt"])
+
+
+def _apply_actuals(events: List[dict], actuals: dict) -> None:
+    """Gắn số thực tế + đánh giá so với kỳ vọng vào từng sự kiện đã công bố."""
+    for e in events:
+        a = actuals.get(econ_events.key(e))
+        if a:
+            e["actual"] = a
+            e["eval"] = econ_events.evaluate(e)
+
+
+def _actuals(client) -> None:
+    """Số thực tế của các sự kiện đã tới giờ công bố (Nasdaq); sự kiện ảnh hưởng cao vừa có kết quả
+    -> gửi Telegram (một lần mỗi sự kiện, chỉ khi công bố trong 6 giờ gần đây)."""
+    with _lock:
+        events = [dict(e) for e in _data["calendar"]]
+    if not events:
+        return
+    actuals = json.loads(storage.kv_get("cal_actuals") or "{}")
+    now = datetime.now(timezone.utc)
+    due = [e for e in events if econ_events.key(e) not in actuals and (e["forecast"] or e["previous"])
+           and datetime.fromisoformat(e["dt"]) <= now - timedelta(minutes=2)]
+    days: Dict[str, List[dict]] = {}
+    for e in due:  # gom theo ngày New York để mỗi ngày chỉ gọi API một lần
+        ny_day = datetime.fromisoformat(e["dt"]).astimezone(econ_events._NY).date()
+        days.setdefault(ny_day.isoformat(), []).append(e)
+    for d, evs in days.items():
+        rows = econ_events.fetch_day(client, date.fromisoformat(d))
+        for e in evs:
+            r = econ_events.match(e, rows)
+            if r:
+                actuals[econ_events.key(e)] = r["actual"].strip()
+    week_keys = {econ_events.key(e) for e in events}
+    actuals = {k: v for k, v in actuals.items() if k in week_keys}  # chỉ giữ tuần hiện tại
+    storage.kv_set("cal_actuals", json.dumps(actuals, ensure_ascii=False))
+    _apply_actuals(events, actuals)
+    with _lock:
+        _data["calendar"] = events
+    _notify_results(events, now)
+
+
+def _notify_results(events: List[dict], now: datetime) -> None:
+    sent = set(json.loads(storage.kv_get("cal_sent") or "[]"))
+    fresh = [e for e in events if e.get("eval") and e["imp"] >= 3 and econ_events.key(e) not in sent]
+    for e in fresh:
+        sent.add(econ_events.key(e))
+        if now - datetime.fromisoformat(e["dt"]) <= timedelta(hours=6) and notifier.TELEGRAM_ENABLED:
+            notifier.send_message(econ_events.telegram_text(e), silent=notifier._silent_now())
+    if fresh:
+        keys = {econ_events.key(e) for e in events}
+        storage.kv_set("cal_sent", json.dumps(sorted(k for k in sent if k in keys)))
 
 
 def _caps(client) -> None:
@@ -261,6 +326,7 @@ _PARTS = [  # (tên, hàm, chu kỳ trong phiên VN (giây), chu kỳ ngoài phi
     ("gold", _gold, 300, 300),
     ("bank", _bank, 300, 900),
     ("calendar", _calendar, 3600, 3600),
+    ("actuals", _actuals, 600, 600),
     ("caps", _caps, 600, 600),
     ("crypto_sparks", _crypto_sparks, 300, 300),
     ("vn_days", _vn_days, 1800, 3600),

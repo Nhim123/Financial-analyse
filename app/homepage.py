@@ -139,6 +139,23 @@ def _clean(text: Optional[str]) -> str:
     return re.sub(r"\s{2,}", " ", _RE_TAG.sub(" ", text or "")).strip()
 
 
+def _ev_result(e: dict) -> dict:
+    """Nhãn kết quả sự kiện kinh tế so với kỳ vọng (rỗng nếu chưa công bố)."""
+    ev = e.get("eval")
+    if not ev:
+        return {}
+    # Màu theo MỨC BẤT NGỜ (không theo chiều số: thất nghiệp "cao hơn" không phải tin tốt);
+    # xanh/đỏ dành cho chiều tác động tới từng thị trường.
+    fg, bg = (("#4a5a53", "#eef1ec") if ev["status"] == "inline"
+              else ("#c0303a", "#fdeaef") if ev["strong"] else ("#b45309", "#fbf0df"))
+    tone = {"hawkish": "🦅 Hawkish", "dovish": "🕊️ Dovish"}.get(ev["tone"] or "", "")
+    return {"label": ev["label"], "arrow": {"above": "▲", "below": "▼"}.get(ev["status"], "="),
+            "strength": ev["strength"], "dev": ev["dev"], "fg": fg, "bg": bg,
+            "tone": tone, "meaning": ev["meaning"],
+            "effects": [{"name": x["name"], "arrow": x["arrow"], "why": x.get("why", ""),
+                         "col": UP if x["dir"] > 0 else DN} for x in ev["effects"]]}
+
+
 def _lean(agg: Optional[dict]) -> Optional[float]:
     """Độ nghiêng dùng để suy ra tác động: điểm net co lại khi có ít tin mang tín hiệu
     (1 tin -> 1/5, 2 tin -> 2/5 … ≥5 tin -> giữ nguyên) để vài tiêu đề đơn lẻ không thành 'tác động mạnh'."""
@@ -443,15 +460,22 @@ def build(results: List[dict], news: Dict[str, dict], tone: Optional[dict],
             "day": _WEEKDAYS[i], "date": day.strftime("%d/%m"), "today": day == now_vn.date(),
             "more": len(evs) - len(shown),
             "events": [{"time": e["dt"][11:16], "title": e["vi"], "orig": e["title"], "country": e["country"],
-                        "dot": imp_col[e["imp"]],
-                        "detail": " · ".join(x for x in (f"Dự báo {e['forecast']}" if e["forecast"] else "",
+                        "dot": imp_col[e["imp"]], "actual": e.get("actual"), "res": _ev_result(e),
+                        "detail": " · ".join(x for x in (f"Thực tế {e['actual']}" if e.get("actual") else "",
+                                                           f"Dự báo {e['forecast']}" if e["forecast"] else "",
                                                            f"Kỳ trước {e['previous']}" if e["previous"] else "") if x)}
                        for e in shown]})
+    # Kết quả đã công bố (ảnh hưởng trung bình trở lên), mới nhất trước.
+    results = [{"when": f"{_WEEKDAYS[datetime.fromisoformat(e['dt']).weekday()]} {e['dt'][11:16]}",
+                "title": e["vi"], "orig": e["title"], "country": e["country"], "dot": imp_col[e["imp"]],
+                "actual": e["actual"], "forecast": e["forecast"], "previous": e["previous"], **_ev_result(e)}
+               for e in sorted(events, key=lambda e: e["dt"], reverse=True)
+               if e.get("eval") and e["imp"] >= 2][:8]
 
     return {
         "accent": ACCENT, "vn_open": vn_open, "cards": cards, "ticker": ticker,
         "sectors": sectors, "mover_groups": mover_groups, "alerts": alerts[:6], "alert_count": len(alerts),
-        "news_fields": news_fields, "week": week, "has_calendar": bool(events),
+        "news_fields": news_fields, "week": week, "has_calendar": bool(events), "ev_results": results,
         "tone_effects": market_effects(_lean(tone)),
         "board": board, "breadth": breadth, "liquidity": liquidity, "flow": flow,
         "stock_news": stock_news, "commod_news": commod_news, "fx_news": fx_news,

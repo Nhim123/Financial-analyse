@@ -197,9 +197,23 @@ def build_recap(day: Optional[date] = None) -> str:
                 meta.append(n["tone"]["sym"])
             lines.append(f"{bullet} <a href=\"{_esc(n['link'])}\">{_esc(n['vi_title'])}</a> — {' · '.join(meta)}")
 
+    # Kết quả sự kiện kinh tế đã công bố hôm qua (giờ VN) so với kỳ vọng.
+    cal = marketdata.snapshot().get("calendar", [])
+    done = sorted((e for e in cal if e["dt"][:10] == day.isoformat() and e["imp"] >= 2 and e.get("eval")),
+                  key=lambda e: (-e["imp"], e["dt"]))[:6]
+    if done:
+        lines += ["", "<b>📊 Kết quả sự kiện hôm qua:</b>"]
+        for e in sorted(done, key=lambda e: e["dt"]):
+            ev = e["eval"]
+            icon = {"inline": "⚪", "above": "🔺", "below": "🔻"}[ev["status"]]
+            ref = f" / dự báo {_esc(e['forecast'])}" if e["forecast"] else ""
+            fx = " · ".join(f"{x['name']} {x['arrow']}" for x in ev["effects"][:4])
+            lines.append(f"{icon} {_esc(e['country'])} · {_esc(e['vi'])}: <b>{_esc(e['actual'])}</b>{ref} — "
+                         f"{ev['label'].lower()}{(' → ' + fx) if fx else ''}")
+
     # Lịch sự kiện kinh tế hôm nay (giờ VN).
     today = (day + timedelta(days=1)).isoformat()
-    events = sorted((e for e in marketdata.snapshot().get("calendar", [])
+    events = sorted((e for e in cal
                      if e["dt"][:10] == today and e["imp"] >= 2), key=lambda e: (-e["imp"], e["dt"]))[:6]
     if events:
         lines += ["", "<b>📅 Sự kiện hôm nay:</b>"]
