@@ -24,6 +24,10 @@ DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "da
 COLLECT_INTERVAL_SECONDS = int(os.getenv("COLLECT_INTERVAL_SECONDS", "600"))
 # Chu kỳ lấy GIÁ TRỰC TIẾP (giây) đẩy lên giao diện — tách khỏi chu kỳ kiểm chứng ở trên.
 LIVE_INTERVAL_SECONDS = int(os.getenv("LIVE_INTERVAL_SECONDS", "15"))
+# Chứng khoán VN trong giờ khớp lệnh: giá VN30/HNX30 + chỉ số sàn mỗi N giây; bảng giá toàn sàn HOSE
+# (KL, giá trị, khối ngoại, dòng tiền) + chỉ số ngành mỗi M giây. Ngoài giờ khớp lệnh tự giãn ra.
+VN_LIVE_INTERVAL_SECONDS = int(os.getenv("VN_LIVE_INTERVAL_SECONDS", "5"))
+VN_BOARD_INTERVAL_SECONDS = int(os.getenv("VN_BOARD_INTERVAL_SECONDS", "15"))
 HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "20"))
 
 # Ngưỡng cảnh báo khi đối chiếu đa nguồn (chênh lệch % giữa các nguồn).

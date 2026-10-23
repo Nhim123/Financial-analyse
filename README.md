@@ -100,6 +100,11 @@ Sau khi chạy (cách nào cũng được), mở trình duyệt: **http://localh
   - Ô tìm kiếm trên thanh công cụ lọc nhanh mã/tên. Nút **⛶** vào chế độ toàn màn hình;
     trên điện thoại các vùng tự xếp 1–2 cột.
 - **Thời gian thực** (không cần tải lại trang, không có nút cập nhật thủ công):
+  - **Chứng khoán Việt Nam trong giờ khớp lệnh** (9:00–11:30, 13:00–14:45) có nhịp riêng: giá VN30,
+    HNX30 và chỉ số sàn mỗi 5 giây (`VN_LIVE_INTERVAL_SECONDS`); bảng giá toàn sàn HOSE (khối lượng,
+    độ rộng, thanh khoản, dòng tiền, khối ngoại) và chỉ số ngành mỗi 15 giây (`VN_BOARD_INTERVAL_SECONDS`).
+    Tab Cổ phiếu / Tổng quan tự làm mới bảng giá, độ rộng, thanh khoản, top tăng/giảm mỗi ~10 giây
+    (chỉ khi đang mở tab đó). Nghỉ trưa / sau ATC: mỗi phút; ngoài giờ: mỗi 10 phút.
   - **Giá trực tiếp** lấy mỗi 15 giây (`LIVE_INTERVAL_SECONDS`) từ Binance (crypto), CNBC
     (chỉ số, hàng hoá, tỷ giá) và SSI iBoard (chỉ số sàn, chỉ số ngành, cổ phiếu VN) rồi **đẩy ngay**
     lên giao diện qua luồng `/stream` (Server-Sent Events — lần đầu gửi toàn bộ, sau đó chỉ các mã

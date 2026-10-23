@@ -18,5 +18,7 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def get_client() -> httpx.Client:
-    return httpx.Client(timeout=HTTP_TIMEOUT, headers=HEADERS, follow_redirects=True)
+def get_client(keepalive_s: float = 5.0) -> httpx.Client:
+    """keepalive_s: giữ kết nối rảnh bao lâu (client dùng lâu dài cần lớn hơn chu kỳ gọi)."""
+    return httpx.Client(timeout=HTTP_TIMEOUT, headers=HEADERS, follow_redirects=True,
+                        limits=httpx.Limits(keepalive_expiry=keepalive_s))

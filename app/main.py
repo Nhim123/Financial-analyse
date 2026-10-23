@@ -15,7 +15,8 @@ from starlette.requests import Request
 from . import (homepage, live, marketdata, news_service, notifier, recap, risk, storage, telegram_bot,
                trades)
 from .config import (COLLECT_INTERVAL_SECONDS, LIVE_INTERVAL_SECONDS, MARKET_INTERVAL_SECONDS,
-                     NEWS_SOURCES, SOURCES, TELEGRAM_DIGEST_HOURS, TELEGRAM_ENABLED, TELEGRAM_RECAP_HOUR)
+                     NEWS_SOURCES, SOURCES, TELEGRAM_DIGEST_HOURS, TELEGRAM_ENABLED, TELEGRAM_RECAP_HOUR,
+                     VN_LIVE_INTERVAL_SECONDS)
 from .pipeline import last_summary, run_pipeline
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
@@ -35,6 +36,14 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(live.refresh, "interval", seconds=LIVE_INTERVAL_SECONDS, id="live",
                       max_instances=1, coalesce=True,
                       next_run_time=datetime.now(timezone.utc) + timedelta(seconds=LIVE_INTERVAL_SECONDS))
+    # Chứng khoán VN: nhịp riêng, dày trong giờ khớp lệnh (refresh_vn tự giãn khi nghỉ trưa/ngoài giờ).
+    try:
+        live.refresh_vn()
+    except Exception as e:  # noqa: BLE001
+        print(f"[startup] lấy giá CK Việt Nam lỗi: {e}")
+    scheduler.add_job(live.refresh_vn, "interval", seconds=VN_LIVE_INTERVAL_SECONDS, id="live_vn",
+                      max_instances=1, coalesce=True,
+                      next_run_time=datetime.now(timezone.utc) + timedelta(seconds=VN_LIVE_INTERVAL_SECONDS))
     # Dữ liệu chu kỳ chậm (vàng SJC, tỷ giá ngân hàng, lịch sự kiện, sparkline): chạy ngay ở nền.
     scheduler.add_job(marketdata.refresh, "interval", seconds=MARKET_INTERVAL_SECONDS, id="market",
                       max_instances=1, coalesce=True, next_run_time=datetime.now(timezone.utc))

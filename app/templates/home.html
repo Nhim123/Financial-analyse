@@ -1400,13 +1400,15 @@ function setLive(ok, ts) {
   if (ts) document.getElementById('livets').textContent = new Date(ts).toLocaleTimeString('vi-VN', {hour12: false, timeZone: VN_TZ});
 }
 let refreshing = false;
-async function refreshSections() {
+// only: danh sách data-refresh cần thay (bỏ trống = mọi vùng).
+async function refreshSections(only) {
   if (refreshing) return;
   refreshing = true;
   try {
     const html = await (await fetch('/', {cache: 'no-store'})).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     document.querySelectorAll('[data-refresh]').forEach(cur => {
+      if (only && !only.includes(cur.dataset.refresh)) return;
       const fresh = doc.querySelector(`[data-refresh="${cur.dataset.refresh}"]`);
       if (fresh) cur.replaceWith(document.importNode(fresh, true));
     });
@@ -1416,7 +1418,23 @@ async function refreshSections() {
   } catch (e) { /* mất mạng tạm thời: lần sau thử lại */ }
   refreshing = false;
 }
-setInterval(refreshSections, 120000);
+setInterval(() => refreshSections(), 120000);
+
+// Bảng giá HOSE, độ rộng, thanh khoản, dòng tiền, top tăng/giảm CK VN: server báo qua /stream (vv đổi)
+// mỗi khi số liệu CK VN đổi — trong giờ khớp lệnh cỡ 5–15 giây/lần. Chỉ làm mới khi đang xem
+// tab có các vùng đó và trang không bị ẩn; tối đa một lần mỗi VN_REFRESH_MIN_MS.
+const VN_SECTIONS = ['chips1', 'board', 'vnright', 'movers'];
+const VN_REFRESH_MIN_MS = 10000;
+let lastVv = null, vnDirty = false, vnRefreshAt = 0;
+function maybeRefreshVn() {
+  if (!vnDirty || document.hidden || !['tong-quan', 'co-phieu'].includes(curPane)) return;
+  if (Date.now() - vnRefreshAt < VN_REFRESH_MIN_MS) return;
+  vnDirty = false;
+  vnRefreshAt = Date.now();
+  refreshSections(VN_SECTIONS);
+}
+setInterval(maybeRefreshVn, 2000);
+document.addEventListener('visibilitychange', maybeRefreshVn);
 
 // ===== Tăng/Giảm mạnh nhất + pop-up bảng xếp hạng =====
 // cardGroup: nhóm hiển thị ở 2 thẻ Tổng quan (Thế giới | VN30 | HNX30);
@@ -1733,6 +1751,8 @@ function connect() {
     setLive(true, snap.ts);
     if (lastRv !== null && snap.rv !== lastRv) refreshSections();
     lastRv = snap.rv;
+    if (lastVv !== null && snap.vv !== lastVv) vnDirty = true;
+    lastVv = snap.vv;
   };
   es.onerror = () => setLive(false);  // EventSource tự kết nối lại
 }
