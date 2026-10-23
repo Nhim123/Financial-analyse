@@ -3,7 +3,9 @@ services:
     build: .
     container_name: fin-watch
     ports:
-      - "8000:8000"
+      # BIND_ADDR (đặt trong .env): để trống = mở cho cả mạng LAN (máy nhà);
+      # trên VPS đặt 127.0.0.1 để không lộ dashboard ra Internet — truy cập qua Tailscale.
+      - "${BIND_ADDR:-0.0.0.0}:8000:8000"
     volumes:
       - ./data:/code/data
     # Token Telegram & tuỳ chọn thông báo (xem .env.example). Không có file .env vẫn chạy được.
@@ -16,4 +18,17 @@ services:
       # Đường dẫn database trong container
       DB_PATH: "/code/data/finwatch.db"
       TZ: "Asia/Ho_Chi_Minh"
+    # Tự khởi động lại khi tiến trình chết và khi máy/VPS khởi động lại.
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Giới hạn log để chạy lâu ngày không đầy ổ đĩa.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,2 @@
+# Script chạy trên VPS Linux phải giữ xuống dòng LF (CRLF làm bash báo lỗi "\r").
+*.sh text eol=lf

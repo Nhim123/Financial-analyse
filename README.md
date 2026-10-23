@@ -50,6 +50,10 @@ docker compose up --build
 Nhấp đúp **`run-local.bat`** (hoặc chạy trong terminal). Script tự tạo `.venv`,
 cài thư viện và khởi động server.
 
+### Cách 3 — Chạy 24/7 trên VPS (không cần bật máy)
+Xem **[deploy/README.md](deploy/README.md)**: một lệnh `setup-vps.sh` cài Docker + Tailscale, tự khởi
+động lại khi lỗi/khởi động lại VPS, kiểm tra sức khoẻ mỗi 5 phút và sao lưu database mỗi ngày.
+
 Sau khi chạy (cách nào cũng được), mở trình duyệt: **http://localhost:8000**
 
 - **Giao diện duy nhất: trang chủ `/`** — "Trung tâm tin tức & cảnh báo" theo thiết kế màn 2A
